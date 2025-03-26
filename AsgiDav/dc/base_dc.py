@@ -42,6 +42,7 @@ from abc import ABC, abstractmethod
 from hashlib import md5
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 
 __docformat__ = "reStructuredText"
 
@@ -62,13 +63,13 @@ class BaseDomainController(ABC):
     def __str__(self):
         return f"{self.__class__.__name__}()"
 
-    def _calc_realm_from_path_provider(self, path_info, environ):
+    def _calc_realm_from_path_provider(self, path_info, scope: HTTPScope):
         """Internal helper for derived classes to implement get_domain_realm()."""
-        if environ:
+        if scope:
             # Called while in a request:
             # We don't get the share from the path_info here: it was already
             # resolved and stripped by the request_resolver
-            dav_provider = environ["wsgidav.provider"]
+            dav_provider = scope.asgidav.provider
         else:
             # Called on start-up with the share root URL
             _share, dav_provider = self.wsgidav_app.resolve_provider(path_info)
@@ -85,7 +86,7 @@ class BaseDomainController(ABC):
         return realm
 
     @abstractmethod
-    def get_domain_realm(self, path_info, environ):
+    def get_domain_realm(self, path_info, scope: HTTPScope):
         """Return the normalized realm name for a given URL.
 
         This method is called
@@ -106,7 +107,7 @@ class BaseDomainController(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def require_authentication(self, realm, environ):
+    def require_authentication(self, realm, scope: HTTPScope):
         """Return False to disable authentication for this request.
 
         This method is called
@@ -142,7 +143,7 @@ class BaseDomainController(ABC):
         return not self.require_authentication(realm, None)
 
     @abstractmethod
-    def basic_auth_user(self, realm, user_name, password, environ):
+    def basic_auth_user(self, realm, user_name, password, scope: HTTPScope):
         """Check request access permissions for realm/user_name/password.
 
         Called by http_authenticator for basic authentication requests.

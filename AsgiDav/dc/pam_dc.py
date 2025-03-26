@@ -55,10 +55,10 @@ class PAMDomainController(BaseDomainController):
     def __str__(self):
         return f"{self.__class__.__name__}({self.pam_service!r})"
 
-    def get_domain_realm(self, path_info, environ):
+    def get_domain_realm(self, path_info, scope):
         return f"PAM({self.pam_service})"
 
-    def require_authentication(self, realm, environ):
+    def require_authentication(self, realm, scope):
         return True
 
     def _validate_user(self, user_name):
@@ -73,7 +73,7 @@ class PAMDomainController(BaseDomainController):
             return True
         return False
 
-    def basic_auth_user(self, realm, user_name, password, environ):
+    def basic_auth_user(self, realm, user_name, password, scope):
         # Seems that python_pam is not threadsafe (#265)
         if not self._validate_user(user_name):
             _logger.warning(f"User {user_name!r} is not allowed.")

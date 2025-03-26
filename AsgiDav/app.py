@@ -54,7 +54,7 @@ import sys
 from urllib.parse import unquote
 
 from AsgiDav import __version__, util
-from AsgiDav._type import HTTPScope
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dav_provider import DAVProvider
 from AsgiDav.default_conf import DEFAULT_CONFIG
 from AsgiDav.fs_dav_provider import FilesystemProvider

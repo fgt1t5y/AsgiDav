@@ -63,6 +63,7 @@ DomainControllerBase_
 """
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dc.base_dc import BaseDomainController
 
 __docformat__ = "reStructuredText"
@@ -99,28 +100,30 @@ class SimpleDomainController(BaseDomainController):
             return realm_entry
         return realm_entry.get(user_name)
 
-    def get_domain_realm(self, path_info, environ):
+    def get_domain_realm(self, path_info, scope):
         """Resolve a relative url to the appropriate realm name."""
-        realm = self._calc_realm_from_path_provider(path_info, environ)
+        realm = self._calc_realm_from_path_provider(path_info, scope)
         return realm
 
-    def require_authentication(self, realm, environ):
+    def require_authentication(self, realm, scope):
         """Return True if this realm requires authentication (grant anonymous access otherwise)."""
         realm_entry = self._get_realm_entry(realm)
+
         if realm_entry is None:
             _logger.error(
                 f'Missing configuration simple_dc.user_mapping["{realm}"] (or "*"): '
                 "realm is not accessible!"
             )
+
         return realm_entry is not True
 
-    def basic_auth_user(self, realm, user_name, password, environ):
+    def basic_auth_user(self, realm, user_name, password, scope: HTTPScope):
         """Returns True if this user_name/password pair is valid for the realm,
         False otherwise. Used for basic authentication."""
         user = self._get_realm_entry(realm, user_name)
 
         if user is not None and password == user.get("password"):
-            environ["wsgidav.auth.roles"] = user.get("roles", [])
+            scope.asgidav.auth.roles = user.get("roles", [])
             return True
         return False
 
@@ -128,11 +131,11 @@ class SimpleDomainController(BaseDomainController):
         # We have access to a plaintext password (or stored hash)
         return True
 
-    def digest_auth_user(self, realm, user_name, environ):
+    def digest_auth_user(self, realm, user_name, scope: HTTPScope):
         """Computes digest hash A1 part."""
         user = self._get_realm_entry(realm, user_name)
         if user is None:
             return False
         password = user.get("password")
-        environ["wsgidav.auth.roles"] = user.get("roles", [])
+        scope.asgidav.auth.roles = user.get("roles", [])
         return self._compute_http_digest_a1(realm, user_name, password)

@@ -100,13 +100,13 @@ class NTDomainController(BaseDomainController):
             f"{self.__class__.__name__}({self.preset_domain!r}, {self.preset_server!r})"
         )
 
-    def get_domain_realm(self, path_info, environ):
+    def get_domain_realm(self, path_info, scope):
         return "Windows Domain Authentication"
 
-    def require_authentication(self, realm, environ):
+    def require_authentication(self, realm, scope):
         return True
 
-    def basic_auth_user(self, realm, user_name, password, environ):
+    def basic_auth_user(self, realm, user_name, password, scope):
         domain, user = self._get_domain_username(user_name)
         dc_name = self._get_domain_controller_name(domain)
         return self._auth_user(user, password, domain, dc_name)

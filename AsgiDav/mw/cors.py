@@ -8,6 +8,7 @@ Respond to CORS preflight OPTIONS request and inject CORS headers.
 """
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.mw.base_mw import BaseMiddleware
 
 __docformat__ = "reStructuredText"
@@ -73,11 +74,11 @@ class Cors(BaseMiddleware):
         """Optionally return True to skip this module on startup."""
         return not self.get_config("cors.allow_origin", False)
 
-    def __call__(self, environ, start_response):
-        method = environ["REQUEST_METHOD"].upper()
-        origin = environ.get("HTTP_ORIGIN")
-        ac_req_meth = environ.get("HTTP_ACCESS_CONTROL_REQUEST_METHOD")
-        ac_req_headers = environ.get("HTTP_ACCESS_CONTROL_REQUEST_HEADERS")
+    def __call__(self, scope: HTTPScope, send):
+        method = scope.method.upper()
+        origin = scope.HTTP_ORIGIN
+        ac_req_meth = scope.HTTP_ACCESS_CONTROL_REQUEST_METHOD
+        ac_req_headers = scope.HTTP_ACCESS_CONTROL_REQUEST_HEADERS
 
         acao_headers = None
         if self.allow_origins == "*":
@@ -90,13 +91,13 @@ class Cors(BaseMiddleware):
 
         if acao_headers:
             _logger.debug(
-                f"Granted CORS {method} {environ['PATH_INFO']!r} "
+                f"Granted CORS {method} {scope.path!r} "
                 f"{ac_req_meth!r}, headers: {ac_req_headers}, origin: {origin!r}"
             )
         else:
             # Deny (still return 200 on preflight)
             _logger.warning(
-                f"Denied CORS {method} {environ['PATH_INFO']!r} "
+                f"Denied CORS {method} {scope.path!r} "
                 f"{ac_req_meth!r}, headers: {ac_req_headers}, origin: {origin!r}"
             )
 
@@ -125,4 +126,4 @@ class Cors(BaseMiddleware):
                 )
             start_response(status, headers, exc_info)
 
-        return self.next_app(environ, wrapped_start_response)
+        return self.next_app(scope, wrapped_start_response)

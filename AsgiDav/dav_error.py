@@ -149,13 +149,13 @@ class DAVErrorCondition:
 
     def as_xml(self):
         if self.condition_code == PRECONDITION_CODE_MissingLockToken:
-            assert (
-                len(self.hrefs) > 0
-            ), "lock-token-submitted requires at least one href"
-        error_el = etree.Element("{DAV:}error")
-        cond_el = etree.SubElement(error_el, self.condition_code)
+            assert len(self.hrefs) > 0, (
+                "lock-token-submitted requires at least one href"
+            )
+        error_el = etree.Element("{DAV:}error")  # type: ignore
+        cond_el = etree.SubElement(error_el, self.condition_code)  # type: ignore
         for href in self.hrefs:
-            etree.SubElement(cond_el, "{DAV:}href").text = href
+            etree.SubElement(cond_el, "{DAV:}href").text = href  # type: ignore
         return error_el
 
     def as_string(self):
@@ -254,10 +254,7 @@ class DAVError(Exception):
         html.append(f"  <p>{html_escape(self.get_user_info())}</p>")
         html.append("<hr/>")
         html.append(
-            "<a href='https://github.com/mar10/wsgidav/'>{}</a> - {}".format(
-                util.public_wsgidav_info,
-                html_escape(str(datetime.datetime.now()), "utf-8"),
-            )
+            f"<a href='https://github.com/mar10/wsgidav/'>{util.public_wsgidav_info}</a> - {html_escape(str(datetime.datetime.now()))}"
         )
         html.append("</body></html>")
         html = "\n".join(html)

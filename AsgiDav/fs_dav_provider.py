@@ -22,7 +22,7 @@ import sys
 from typing import List
 
 from AsgiDav import util
-from AsgiDav._type import HTTPScope
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dav_error import HTTP_FORBIDDEN, DAVError
 from AsgiDav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
 
@@ -116,7 +116,7 @@ class FileResource(DAVNonCollection):
         """See DAVResource.copy_move_single()"""
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
-        fpDest = self.provider._loc_to_file_path(dest_path, self.environ)
+        fpDest = self.provider._loc_to_file_path(dest_path, self.scope)
         assert not util.is_equal_or_child_uri(self.path, dest_path)
         # Copy file (overwrite, if exists)
         shutil.copy2(self._file_path, fpDest)
@@ -124,17 +124,17 @@ class FileResource(DAVNonCollection):
         # Copy dead properties
         propMan = self.provider.prop_manager
         if propMan:
-            destRes = self.provider.get_resource_inst(dest_path, self.environ)
+            destRes = self.provider.get_resource_inst(dest_path, self.scope)
             if is_move:
                 propMan.move_properties(
                     self.get_ref_url(),
                     destRes.get_ref_url(),
                     with_children=False,
-                    environ=self.environ,
+                    environ=self.scope,
                 )
             else:
                 propMan.copy_properties(
-                    self.get_ref_url(), destRes.get_ref_url(), self.environ
+                    self.get_ref_url(), destRes.get_ref_url(), self.scope
                 )
 
     def support_recursive_move(self, dest_path):
@@ -145,7 +145,7 @@ class FileResource(DAVNonCollection):
         """See DAVResource.move_recursive()"""
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
-        fpDest = self.provider._loc_to_file_path(dest_path, self.environ)
+        fpDest = self.provider._loc_to_file_path(dest_path, self.scope)
         assert not util.is_equal_or_child_uri(self.path, dest_path)
         assert not os.path.exists(fpDest)
         _logger.debug(f"move_recursive({self._file_path}, {fpDest})")
@@ -153,12 +153,12 @@ class FileResource(DAVNonCollection):
         # (Live properties are copied by copy2 or copystat)
         # Move dead properties
         if self.provider.prop_manager:
-            destRes = self.provider.get_resource_inst(dest_path, self.environ)
+            destRes = self.provider.get_resource_inst(dest_path, self.scope)
             self.provider.prop_manager.move_properties(
                 self.get_ref_url(),
                 destRes.get_ref_url(),
                 with_children=True,
-                environ=self.environ,
+                environ=self.scope,
             )
 
     def set_last_modified(self, dest_path, time_stamp, *, dry_run):
@@ -279,10 +279,10 @@ class FolderResource(DAVCollection):
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
         path = util.join_uri(self.path, name)
-        fp = self.provider._loc_to_file_path(path, self.environ)
+        fp = self.provider._loc_to_file_path(path, self.scope)
         f = open(fp, "wb")
         f.close()
-        return self.provider.get_resource_inst(path, self.environ)
+        return self.provider.get_resource_inst(path, self.scope)
 
     def create_collection(self, name):
         """Create a new collection as member of self.
@@ -293,7 +293,7 @@ class FolderResource(DAVCollection):
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
         path = util.join_uri(self.path, name)
-        fp = self.provider._loc_to_file_path(path, self.environ)
+        fp = self.provider._loc_to_file_path(path, self.scope)
         os.mkdir(fp)
 
     def delete(self):
@@ -311,7 +311,7 @@ class FolderResource(DAVCollection):
         """See DAVResource.copy_move_single()"""
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
-        fpDest = self.provider._loc_to_file_path(dest_path, self.environ)
+        fpDest = self.provider._loc_to_file_path(dest_path, self.scope)
         assert not util.is_equal_or_child_uri(self.path, dest_path)
         # Create destination collection, if not exists
         if not os.path.exists(fpDest):
@@ -326,17 +326,17 @@ class FolderResource(DAVCollection):
         # Copy dead properties
         propMan = self.provider.prop_manager
         if propMan:
-            destRes = self.provider.get_resource_inst(dest_path, self.environ)
+            destRes = self.provider.get_resource_inst(dest_path, self.scope)
             if is_move:
                 propMan.move_properties(
                     self.get_ref_url(),
                     destRes.get_ref_url(),
                     with_children=False,
-                    environ=self.environ,
+                    environ=self.scope,
                 )
             else:
                 propMan.copy_properties(
-                    self.get_ref_url(), destRes.get_ref_url(), self.environ
+                    self.get_ref_url(), destRes.get_ref_url(), self.scope
                 )
 
     def support_recursive_move(self, dest_path):
@@ -347,7 +347,7 @@ class FolderResource(DAVCollection):
         """See DAVResource.move_recursive()"""
         if self.provider.readonly:
             raise DAVError(HTTP_FORBIDDEN)
-        fpDest = self.provider._loc_to_file_path(dest_path, self.environ)
+        fpDest = self.provider._loc_to_file_path(dest_path, self.scope)
         assert not util.is_equal_or_child_uri(self.path, dest_path)
         assert not os.path.exists(fpDest)
         _logger.debug(f"move_recursive({self._file_path}, {fpDest})")
@@ -355,12 +355,12 @@ class FolderResource(DAVCollection):
         # (Live properties are copied by copy2 or copystat)
         # Move dead properties
         if self.provider.prop_manager:
-            destRes = self.provider.get_resource_inst(dest_path, self.environ)
+            destRes = self.provider.get_resource_inst(dest_path, self.scope)
             self.provider.prop_manager.move_properties(
                 self.get_ref_url(),
                 destRes.get_ref_url(),
                 with_children=True,
-                environ=self.environ,
+                environ=self.scope,
             )
 
     def set_last_modified(self, dest_path, time_stamp, *, dry_run):
@@ -409,7 +409,7 @@ class FilesystemProvider(DAVProvider):
         rw = "Read-Only" if self.readonly else "Read-Write"
         return f"{self.__class__.__name__} for path {self.root_folder_path!r} ({rw})"
 
-    def _resolve_shadow_path(self, path: str, environ: dict, file_path):
+    def _resolve_shadow_path(self, path: str, scope: HTTPScope, file_path):
         """File not found: See if there is a shadow configured."""
         shadow = self.shadow_map.get(path.lower())
         # _logger.info(f"Shadow {path} -> {shadow} {self.shadow}")
@@ -417,7 +417,7 @@ class FilesystemProvider(DAVProvider):
             return False, file_path
 
         err = None
-        method = environ["REQUEST_METHOD"].upper()
+        method = scope.method.upper()
         if method not in ("GET", "HEAD", "OPTIONS"):
             err = f"Shadow {path} -> {shadow}: ignored for method {method!r}."
         elif os.path.exists(file_path):
@@ -431,7 +431,7 @@ class FilesystemProvider(DAVProvider):
         _logger.info(f"Shadow {path} -> {shadow}")
         return True, shadow
 
-    def _loc_to_file_path(self, path: str, environ: dict = None):
+    def _loc_to_file_path(self, path: str, scope: HTTPScope):
         """Convert resource path to a unicode absolute file path.
         Optional environ argument may be useful e.g. in relation to per-user
         sub-folder chrooting inside root_folder_path.
@@ -445,7 +445,7 @@ class FilesystemProvider(DAVProvider):
         file_path = os.path.abspath(os.path.join(root_path, *path_parts))
 
         # Try alternative URL if not found (or even override target):
-        is_shadow, file_path = self._resolve_shadow_path(path, environ, file_path)
+        is_shadow, file_path = self._resolve_shadow_path(path, scope, file_path)
 
         if not file_path.startswith(root_path) and not is_shadow:
             raise RuntimeError(
@@ -456,18 +456,20 @@ class FilesystemProvider(DAVProvider):
         file_path = util.to_unicode_safe(file_path)
         return file_path
 
-    def get_resource_inst(self, path: str, environ: dict) -> FileResource:
+    def get_resource_inst(
+        self, path: str, scope: HTTPScope
+    ) -> FileResource | FolderResource | None:
         """Return info dictionary for path.
 
         See DAVProvider.get_resource_inst()
         """
         self._count_get_resource_inst += 1
-        fp = self._loc_to_file_path(path, environ)
+        fp = self._loc_to_file_path(path, scope)
 
         if not os.path.exists(fp):
             return None
         if not self.fs_opts.get("follow_symlinks") and os.path.islink(fp):
             raise DAVError(HTTP_FORBIDDEN, f"Symlink support is disabled: {fp!r}")
         if os.path.isdir(fp):
-            return FolderResource(path, environ, fp)
-        return FileResource(path, environ, fp)
+            return FolderResource(path, scope, fp)
+        return FileResource(path, scope, fp)

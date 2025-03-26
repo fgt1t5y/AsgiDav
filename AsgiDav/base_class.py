@@ -1,4 +1,14 @@
 from abc import ABC, abstractmethod
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Iterable,
+    Literal,
+    NotRequired,
+    TypedDict,
+    Union,
+)
 from urllib.parse import unquote
 
 from AsgiDav import util
@@ -12,7 +22,7 @@ class DAVProvider(ABC):
 
     def __init__(self):
         self.mount_path = ""
-        self.share_path = None
+        self.share_path: str | None = None
         self.lock_manager = None
         self.prop_manager = None
         self.verbose = 3
@@ -70,10 +80,10 @@ class DAVProvider(ABC):
 
         Used to calculate the <path> from a storage key by inverting get_ref_url().
         """
-        return "/" + unquote(util.removeprefix(ref_url, self.share_path)).lstrip("/")
+        return "/" + unquote(util.removeprefix(ref_url, self.share_path)).lstrip("/")  # type: ignore
 
     @abstractmethod
-    def get_resource_inst(self, path: str, environ: dict):
+    def get_resource_inst(self, path: str, scope):
         """Return a _DAVResource object for path.
 
         Should be called only once per request and resource::
@@ -120,3 +130,196 @@ class DAVProvider(ABC):
         - do additional processing and call default_handler(environ, start_response)
         """
         return default_handler(environ, start_response)
+
+
+class ASGIVersions(TypedDict):
+    spec_version: str
+    version: Literal["2.0"] | Literal["3.0"]
+
+
+class AsgiDavAuth:
+    user_name: str | None
+    roles: list[str]
+
+
+class AsgiDavConditions:
+    _if: dict[str, Any] | None
+
+    def __init__(self) -> None:
+        self._if = None
+
+
+class AsgiDavContext:
+    config: dict[str, Any]
+    provider: DAVProvider | None
+    verbose: int
+    auth: AsgiDavAuth
+    user_name: str
+    conditions: AsgiDavConditions
+    ifLockTokenList: list[Any]
+    debug_break: bool | None
+    dump_response_body: str | None
+    all_input_read: int | None
+
+    def __init__(self) -> None:
+        self.auth = AsgiDavAuth()
+        self.conditions = AsgiDavConditions()
+
+        self.auth.user_name = None
+        self.auth.roles = []
+
+
+# HTTPScope with context
+class HTTPScope:
+    type: Literal["http"]
+    asgi: ASGIVersions
+    http_version: str
+    method: str
+    scheme: str
+    path: str
+    raw_path: bytes
+    query_string: bytes
+    root_path: str
+    headers: dict[str, str]
+    client: tuple[str, int] | None
+    server: tuple[str, int | None] | None
+    url_scheme: str
+    # state: NotRequired[dict[str, Any]]
+    # extensions: NotRequired[dict[str, dict[object, object]]]
+
+    HTTP_DEPTH: str | None
+    HTTP_OVERWRITE: str | None
+    HTTP_EXPECT: str | None
+    HTTP_IF: str | None
+    HTTP_IF_MODIFIED_SINCE: str | None
+    HTTP_IF_UNMODIFIED_SINCE: str | None
+    HTTP_IF_MATCH: str | None
+    HTTP_CONTENT_ENCODING: str | None
+    HTTP_CONTENT_RANGE: str | None
+    CONTENT_TYPE: str | None
+    CONTENT_LENGTH: str | None
+    HTTP_DESTINATION: str | None
+    HTTP_X_FORWARDED_PROTO: str | None
+    HTTP_HOST: str
+    HTTP_TIMEOUT: str | None
+    HTTP_LOCK_TOKEN: str | None
+    HTTP_RANGE: str | None
+    HTTP_IF_RANGE: str | None
+    HTTP_USER_AGENT: str | None
+    HTTP_ORIGIN: str | None
+    HTTP_ACCESS_CONTROL_REQUEST_METHOD: str | None
+    HTTP_ACCESS_CONTROL_REQUEST_HEADERS: tuple[str, int] | None | None
+    SERVER_NAME: str
+    SERVER_PORT: str
+
+    asgidav: AsgiDavContext
+
+    def __init__(self, scope) -> None:
+        self.type = "http"
+        self.asgi = scope["asgi"]
+        self.http_version = scope["http_version"]
+        self.method = scope["method"]
+        self.path = scope["path"]
+        self.raw_path = scope["raw_path"]
+        self.query_string = scope["query_string"]
+        self.root_path = scope["root_path"]
+        self.headers = self.headers_to_dict(scope["headers"])
+        self.client = scope["client"]
+        self.server = scope["server"]
+        self.url_scheme = scope["scheme"] or "http"
+
+        self.HTTP_DEPTH = self.headers.get("depth")
+        self.HTTP_OVERWRITE = self.headers.get("overwrite")
+        self.HTTP_EXPECT = self.headers.get("expect")
+        self.HTTP_IF = self.headers.get("if")
+        self.HTTP_IF_MODIFIED_SINCE = self.headers.get("if-modified-since")
+        self.HTTP_IF_UNMODIFIED_SINCE = self.headers.get("if-unmodified-since")
+        self.HTTP_IF_MATCH = self.headers.get("if-match")
+        self.HTTP_IF_NONE_MATCH = self.headers.get("if-none-match")
+        self.HTTP_CONTENT_ENCODING = self.headers.get("content-encoding")
+        self.HTTP_CONTENT_RANGE = self.headers.get("content-range")
+        self.CONTENT_TYPE = self.headers.get("content-type")
+        self.CONTENT_LENGTH = self.headers.get("content-length")
+        self.HTTP_DESTINATION = self.headers.get("destination")
+        self.HTTP_X_FORWARDED_PROTO = self.headers.get("x-forwarded-proto")
+        self.HTTP_HOST = self.headers["host"]
+        self.HTTP_TIMEOUT = self.headers.get("timeout")
+        self.HTTP_LOCK_TOKEN = self.headers.get("lock-token")
+        self.HTTP_RANGE = self.headers.get("range")
+        self.SERVER_NAME = self.server[0]  # type: ignore
+        self.SERVER_PORT = self.server[1]  # type: ignore
+        self.HTTP_IF_RANGE = self.headers.get("if-range")
+        self.HTTP_USER_AGENT = self.headers.get("user-agent")
+        self.HTTP_ORIGIN = self.headers.get("origin")
+        self.HTTP_ACCESS_CONTROL_REQUEST_METHOD = self.headers.get(
+            "access-control-request-method"
+        )
+        self.HTTP_ACCESS_CONTROL_REQUEST_HEADERS = self.headers.get(
+            "access-control-request-headers"
+        )
+
+        self.asgidav = AsgiDavContext()
+
+    def headers_to_dict(self, headers: Iterable[tuple[bytes, bytes]]):
+        result: dict[str, str] = {}
+
+        for key, value in headers:
+            result[f"{key.decode()}"] = value.decode()
+
+        return result
+
+
+class HTTPRequestEvent(TypedDict):
+    type: Literal["http.request"]
+    body: bytes
+    more_body: bool
+
+
+class HTTPDisconnectEvent(TypedDict):
+    type: Literal["http.disconnect"]
+
+
+ASGIReceiveEvent = Union[
+    HTTPRequestEvent,
+    HTTPDisconnectEvent,
+    # WebSocketConnectEvent,
+    # WebSocketReceiveEvent,
+    # WebSocketDisconnectEvent,
+    # LifespanStartupEvent,
+    # LifespanShutdownEvent,
+]
+
+
+class HTTPResponseStartEvent(TypedDict):
+    type: Literal["http.response.start"]
+    status: int
+    headers: NotRequired[Iterable[tuple[bytes, bytes]]]
+    trailers: NotRequired[bool]
+
+
+class HTTPResponseBodyEvent(TypedDict):
+    type: Literal["http.response.body"]
+    body: bytes
+    more_body: NotRequired[bool]
+
+
+ASGISendEvent = Union[
+    HTTPResponseStartEvent,
+    HTTPResponseBodyEvent,
+    # HTTPResponseTrailersEvent,
+    # HTTPServerPushEvent,
+    # HTTPDisconnectEvent,
+    # WebSocketAcceptEvent,
+    # WebSocketSendEvent,
+    # WebSocketResponseStartEvent,
+    # WebSocketResponseBodyEvent,
+    # WebSocketCloseEvent,
+    # LifespanStartupCompleteEvent,
+    # LifespanStartupFailedEvent,
+    # LifespanShutdownCompleteEvent,
+    # LifespanShutdownFailedEvent,
+]
+
+
+ASGIReceiveCallable = Callable[[], Awaitable[ASGIReceiveEvent]]
+ASGISendCallable = Callable[[ASGISendEvent], Awaitable[None]]

@@ -31,7 +31,7 @@ class BaseMiddleware(ABC):
         self.verbose = config.get("verbose", 3)
 
     @abstractmethod
-    def __call__(self, environ, start_response):
+    def __call__(self, scope, send):
         raise NotImplementedError
 
     def __repr__(self):

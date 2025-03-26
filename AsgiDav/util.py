@@ -26,7 +26,7 @@ from typing import Any, Iterable, Optional, Tuple
 from urllib.parse import quote
 
 from AsgiDav import __version__
-from AsgiDav._type import HTTPScope
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dav_error import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,

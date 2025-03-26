@@ -9,42 +9,21 @@ Small wrapper for different etree packages.
 import logging
 from io import StringIO
 
+from lxml import etree
+
 __docformat__ = "reStructuredText"
 
-# _logger = util.get_module_logger(__name__)
 _logger = logging.getLogger("wsgidav")
-
-# Import XML support
-use_lxml = False
-try:
-    from lxml import etree
-
-    use_lxml = True
-    _ElementType = etree._Element
-except ImportError:
-    # defusedxml doesn't define these non-parsing related objects
-    from xml.etree.ElementTree import Element, SubElement, tostring
-
-    from defusedxml import ElementTree as etree
-
-    etree.Element = _ElementType = Element
-    etree.SubElement = SubElement
-    etree.tostring = tostring
-
-
-# ========================================================================
-# XML
-# ========================================================================
 
 
 def is_etree_element(obj):
-    return isinstance(obj, _ElementType)
+    return isinstance(obj, etree._Element)
 
 
 def string_to_xml(text):
     """Convert XML string into etree.Element."""
     try:
-        return etree.XML(text)
+        return etree.XML(text)  # type: ignore
     except Exception:
         # TODO:
         # ExpatError: reference to invalid character number: line 1, column 62
@@ -67,17 +46,7 @@ def string_to_xml(text):
 def xml_to_bytes(element, *, pretty=False):
     """Wrapper for etree.tostring, that takes care of unsupported pretty_print
     option and prepends an encoding header."""
-    if use_lxml:
-        xml = etree.tostring(  # pylint: disable=unexpected-keyword-arg
-            element,
-            encoding="UTF-8",
-            xml_declaration=True,
-            pretty_print=pretty,
-        )
-    else:
-        xml = etree.tostring(element, encoding="UTF-8")
-        if not xml.startswith(b"<?xml "):
-            xml = b'<?xml version="1.0" encoding="utf-8" ?>\n' + xml
+    xml = etree.tostring(element)
 
     assert xml.startswith(b"<?xml ")  # ET should prepend an encoding header
     return xml
@@ -85,23 +54,17 @@ def xml_to_bytes(element, *, pretty=False):
 
 def make_multistatus_el():
     """Wrapper for etree.Element, that takes care of unsupported nsmap option."""
-    if use_lxml:
-        return etree.Element("{DAV:}multistatus", nsmap={"D": "DAV:"})
-    return etree.Element("{DAV:}multistatus")
+    return etree.Element("{DAV:}multistatus", nsmap={"D": "DAV:"})
 
 
 def make_prop_elem():
     """Wrapper for etree.Element, that takes care of unsupported nsmap option."""
-    if use_lxml:
-        return etree.Element("{DAV:}prop", nsmap={"D": "DAV:"})
-    return etree.Element("{DAV:}prop")
+    return etree.Element("{DAV:}prop", nsmap={"D": "DAV:"})
 
 
 def make_sub_element(parent, tag, *, nsmap=None):
     """Wrapper for etree.SubElement, that takes care of unsupported nsmap option."""
-    if use_lxml:
-        return etree.SubElement(parent, tag, nsmap=nsmap)
-    return etree.SubElement(parent, tag)
+    return etree.SubElement(parent, tag, nsmap=nsmap)
 
 
 def element_content_as_string(element):
@@ -113,10 +76,13 @@ def element_content_as_string(element):
     """
     if len(element) == 0:
         return element.text or ""  # Make sure, None is returned as ''
+
     stream = StringIO()
+
     for childnode in element:
         stream.write(xml_to_bytes(childnode, pretty=False) + "\n")
         # print(xml_to_bytes(childnode, pretty=False), file=stream)
     s = stream.getvalue()
     stream.close()
+
     return s

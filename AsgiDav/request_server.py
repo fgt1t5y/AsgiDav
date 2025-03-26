@@ -10,7 +10,7 @@ import io
 from urllib.parse import unquote, urlparse
 
 from AsgiDav import util, xml_tools
-from AsgiDav._type import (
+from AsgiDav.base_class import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
@@ -815,6 +815,8 @@ class RequestServer:
 
         if src_res.is_collection:
             dest_path = dest_path.rstrip("/") + "/"
+
+        assert scope.HTTP_X_FORWARDED_PROTO
 
         dest_scheme = dest_scheme.lower() if dest_scheme else ""
         url_scheme = scope.url_scheme.lower()

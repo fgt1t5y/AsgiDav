@@ -88,8 +88,7 @@ from typing import Optional
 from urllib.parse import quote
 
 from AsgiDav import util, xml_tools
-from AsgiDav._type import HTTPScope
-from AsgiDav.base_class import DAVProvider
+from AsgiDav.base_class import DAVProvider, HTTPScope
 from AsgiDav.dav_error import (
     HTTP_FORBIDDEN,
     HTTP_NOT_FOUND,
@@ -391,7 +390,7 @@ class _DAVResource(ABC):
 
         See also comments in DEVELOPERS.txt glossary.
         """
-        return quote(self.provider.share_path + self.get_preferred_path())
+        return quote(self.provider.share_path + self.get_preferred_path())  # type: ignore
 
     #    def getRefKey(self):
     #        """Return an unambiguous identifier string for a resource.
@@ -421,7 +420,7 @@ class _DAVResource(ABC):
         safe = "/" + "!*'()," + "$-_|."
         return quote(
             self.provider.mount_path
-            + self.provider.share_path
+            + self.provider.share_path  # type: ignore
             + self.get_preferred_path(),
             safe=safe,
         )
@@ -574,7 +573,7 @@ class _DAVResource(ABC):
         if self.provider.prop_manager:
             refUrl = self.get_ref_url()
             propNameList.extend(
-                self.provider.prop_manager.get_properties(refUrl, self.environ)
+                self.provider.prop_manager.get_properties(refUrl, self.scope)
             )
 
         return propNameList
@@ -657,19 +656,19 @@ class _DAVResource(ABC):
             # TODO: we return HTTP_NOT_FOUND if no lockmanager is present.
             # Correct?
             activelocklist = lm.get_url_lock_list(refUrl)
-            lockdiscoveryEL = etree.Element(name)
+            lockdiscoveryEL = etree.Element(name)  # type: ignore
             for lock in activelocklist:
-                activelockEL = etree.SubElement(lockdiscoveryEL, "{DAV:}activelock")
+                activelockEL = etree.SubElement(lockdiscoveryEL, "{DAV:}activelock")  # type: ignore
 
-                locktypeEL = etree.SubElement(activelockEL, "{DAV:}locktype")
+                locktypeEL = etree.SubElement(activelockEL, "{DAV:}locktype")  # type: ignore
                 # Note: make sure `{DAV:}` is not handled as format tag:
-                etree.SubElement(locktypeEL, "{}{}".format("{DAV:}", lock["type"]))
+                etree.SubElement(locktypeEL, "{}{}".format("{DAV:}", lock["type"]))  # type: ignore
 
-                lockscopeEL = etree.SubElement(activelockEL, "{DAV:}lockscope")
+                lockscopeEL = etree.SubElement(activelockEL, "{DAV:}lockscope")  # type: ignore
                 # Note: make sure `{DAV:}` is not handled as format tag:
-                etree.SubElement(lockscopeEL, "{}{}".format("{DAV:}", lock["scope"]))
+                etree.SubElement(lockscopeEL, "{}{}".format("{DAV:}", lock["scope"]))  # type: ignore
 
-                etree.SubElement(activelockEL, "{DAV:}depth").text = lock["depth"]
+                etree.SubElement(activelockEL, "{DAV:}depth").text = lock["depth"]  # type: ignore
                 if lock["owner"]:
                     # lock["owner"] is an XML string
                     # owner may be empty (#64)
@@ -683,41 +682,41 @@ class _DAVResource(ABC):
                     # The time remaining on the lock
                     expire = lock["expire"]
                     timeout = "Second-" + str(int(expire - time.time()))
-                etree.SubElement(activelockEL, "{DAV:}timeout").text = timeout
+                etree.SubElement(activelockEL, "{DAV:}timeout").text = timeout  # type: ignore
 
-                locktokenEL = etree.SubElement(activelockEL, "{DAV:}locktoken")
-                etree.SubElement(locktokenEL, "{DAV:}href").text = lock["token"]
+                locktokenEL = etree.SubElement(activelockEL, "{DAV:}locktoken")  # type: ignore
+                etree.SubElement(locktokenEL, "{DAV:}href").text = lock["token"]  # type: ignore
 
                 # TODO: this is ugly:
                 #       res.get_property_value("{DAV:}lockdiscovery")
                 #
                 #                lockRoot = self.get_href(self.provider.ref_url_to_path(lock["root"]))
                 lockPath = self.provider.ref_url_to_path(lock["root"])
-                lockRes = self.provider.get_resource_inst(lockPath, self.environ)
+                lockRes = self.provider.get_resource_inst(lockPath, self.scope)
                 # FIXME: test for None
                 lockHref = lockRes.get_href()
 
-                lockrootEL = etree.SubElement(activelockEL, "{DAV:}lockroot")
-                etree.SubElement(lockrootEL, "{DAV:}href").text = lockHref
+                lockrootEL = etree.SubElement(activelockEL, "{DAV:}lockroot")  # type: ignore
+                etree.SubElement(lockrootEL, "{DAV:}href").text = lockHref  # type: ignore
 
             return lockdiscoveryEL
 
         elif lm and name == "{DAV:}supportedlock":
             # TODO: we return HTTP_NOT_FOUND if no lockmanager is present. Correct?
             # TODO: the lockmanager should decide about it's features
-            supportedlockEL = etree.Element(name)
+            supportedlockEL = etree.Element(name)  # type: ignore
 
-            lockentryEL = etree.SubElement(supportedlockEL, "{DAV:}lockentry")
-            lockscopeEL = etree.SubElement(lockentryEL, "{DAV:}lockscope")
-            etree.SubElement(lockscopeEL, "{DAV:}exclusive")
-            locktypeEL = etree.SubElement(lockentryEL, "{DAV:}locktype")
-            etree.SubElement(locktypeEL, "{DAV:}write")
+            lockentryEL = etree.SubElement(supportedlockEL, "{DAV:}lockentry")  # type: ignore
+            lockscopeEL = etree.SubElement(lockentryEL, "{DAV:}lockscope")  # type: ignore
+            etree.SubElement(lockscopeEL, "{DAV:}exclusive")  # type: ignore
+            locktypeEL = etree.SubElement(lockentryEL, "{DAV:}locktype")  # type: ignore
+            etree.SubElement(locktypeEL, "{DAV:}write")  # type: ignore
 
-            lockentryEL = etree.SubElement(supportedlockEL, "{DAV:}lockentry")
-            lockscopeEL = etree.SubElement(lockentryEL, "{DAV:}lockscope")
-            etree.SubElement(lockscopeEL, "{DAV:}shared")
-            locktypeEL = etree.SubElement(lockentryEL, "{DAV:}locktype")
-            etree.SubElement(locktypeEL, "{DAV:}write")
+            lockentryEL = etree.SubElement(supportedlockEL, "{DAV:}lockentry")  # type: ignore
+            lockscopeEL = etree.SubElement(lockentryEL, "{DAV:}lockscope")  # type: ignore
+            etree.SubElement(lockscopeEL, "{DAV:}shared")  # type: ignore
+            locktypeEL = etree.SubElement(lockentryEL, "{DAV:}locktype")  # type: ignore
+            etree.SubElement(locktypeEL, "{DAV:}write")  # type: ignore
 
             return supportedlockEL
 
@@ -730,8 +729,8 @@ class _DAVResource(ABC):
                 return self.get_content_type()
             elif name == "{DAV:}resourcetype":
                 if self.is_collection:
-                    resourcetypeEL = etree.Element(name)
-                    etree.SubElement(resourcetypeEL, "{DAV:}collection")
+                    resourcetypeEL = etree.Element(name)  # type: ignore
+                    etree.SubElement(resourcetypeEL, "{DAV:}collection")  # type: ignore
                     return resourcetypeEL
                 return ""
             elif name == "{DAV:}quota-used-bytes":
@@ -760,7 +759,7 @@ class _DAVResource(ABC):
         # Dead property
         pm = self.provider.prop_manager
         if pm:
-            value = pm.get_property(refUrl, name, self.environ)
+            value = pm.get_property(refUrl, name, self.scope)
             if value is not None:
                 return xml_tools.string_to_xml(value)
 
@@ -803,7 +802,7 @@ class _DAVResource(ABC):
             )
 
         # Live property
-        config = self.environ["wsgidav.config"]
+        config = self.scope.asgidav.config
         # hotfixes = util.get_dict_value(config, "hotfixes", as_dict=True)
         mutableLiveProps = config.get("mutable_live_props", [])
         # Accept custom live property updates on resources if configured.
@@ -834,7 +833,7 @@ class _DAVResource(ABC):
         # Note that the WebDAV client in Win7 and earlier has issues and can't be used
         # with this so we ignore older clients. Others pre-Win10 should be tested.
         if name.startswith("{urn:schemas-microsoft-com:}"):
-            agent = self.environ.get("HTTP_USER_AGENT", "None")
+            agent = self.scope.HTTP_USER_AGENT or "None"
             hotfixes = util.get_dict_value(config, "hotfixes", as_dict=True)
             win32_emu = hotfixes.get("emulate_win32_lastmod", False)
             if win32_emu and "MiniRedir/6.1" not in agent:
@@ -854,19 +853,17 @@ class _DAVResource(ABC):
         if pm and not name.startswith("{DAV:}"):
             refUrl = self.get_ref_url()
             if value is None:
-                return pm.remove_property(refUrl, name, dry_run, self.environ)
+                return pm.remove_property(refUrl, name, dry_run, self.scope)
             else:
                 value = etree.tostring(value)
-                return pm.write_property(refUrl, name, value, dry_run, self.environ)
+                return pm.write_property(refUrl, name, value, dry_run, self.scope)
 
         raise DAVError(HTTP_FORBIDDEN)
 
     def remove_all_properties(self, *, recursive):
         """Remove all associated dead properties."""
         if self.provider.prop_manager:
-            self.provider.prop_manager.remove_properties(
-                self.get_ref_url(), self.environ
-            )
+            self.provider.prop_manager.remove_properties(self.get_ref_url(), self.scope)
 
     # --- Locking ------------------------------------------------------------
 
@@ -1207,7 +1204,7 @@ class _DAVResource(ABC):
         """
         raise NotImplementedError
 
-    def finalize_headers(self, environ, response_headers):
+    def finalize_headers(self, scope, response_headers):
         """Perform custom operations on the response headers.
 
         This gets called before the response is started.
@@ -1429,7 +1426,7 @@ class DAVCollection(_DAVResource):
         """
         assert self.is_collection
         return self.provider.get_resource_inst(
-            util.join_uri(self.path, name), self.environ
+            util.join_uri(self.path, name), self.scope
         )
 
     @abstractmethod

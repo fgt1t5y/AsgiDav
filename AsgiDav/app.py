@@ -53,17 +53,17 @@ import platform
 import sys
 from urllib.parse import unquote
 
-from AsgiDav import util, __version__
+from AsgiDav import __version__, util
+from AsgiDav._type import HTTPScope
 from AsgiDav.dav_provider import DAVProvider
 from AsgiDav.default_conf import DEFAULT_CONFIG
 from AsgiDav.fs_dav_provider import FilesystemProvider
-from AsgiDav.mw.http_authenticator import HTTPAuthenticator
 from AsgiDav.lock_man.lock_manager import LockManager
 from AsgiDav.lock_man.lock_storage import LockStorageDict
 from AsgiDav.mw.base_mw import BaseMiddleware
+from AsgiDav.mw.http_authenticator import HTTPAuthenticator
 from AsgiDav.prop_man.property_manager import PropertyManager
 from AsgiDav.request_server import RequestServer
-from AsgiDav._type import HTTPScope
 
 __docformat__ = "reStructuredText"
 

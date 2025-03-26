@@ -6,10 +6,10 @@
 Miscellaneous support functions for WsgiDAV.
 """
 
-import io
 import base64
 import calendar
 import collections.abc
+import io
 import logging
 import mimetypes
 import os
@@ -22,10 +22,11 @@ from copy import deepcopy
 from email.utils import formatdate, parsedate
 from hashlib import md5
 from pprint import pformat
-from typing import Iterable, Optional, Tuple, Any
+from typing import Any, Iterable, Optional, Tuple
 from urllib.parse import quote
 
 from AsgiDav import __version__
+from AsgiDav._type import HTTPScope
 from AsgiDav.dav_error import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
@@ -36,11 +37,10 @@ from AsgiDav.dav_error import (
     HTTP_RANGE_NOT_SATISFIABLE,
     DAVError,
     as_DAVError,
-    get_http_status_string,
     get_http_status_code,
+    get_http_status_string,
 )
 from AsgiDav.xml_tools import etree, is_etree_element, make_sub_element, xml_to_bytes
-from AsgiDav._type import HTTPScope
 
 __docformat__ = "reStructuredText"
 

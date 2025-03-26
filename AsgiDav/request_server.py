@@ -10,6 +10,13 @@ import io
 from urllib.parse import unquote, urlparse
 
 from AsgiDav import util, xml_tools
+from AsgiDav._type import (
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    HTTPRequestEvent,
+    HTTPScope,
+)
 from AsgiDav.dav_error import (
     HTTP_BAD_GATEWAY,
     HTTP_BAD_REQUEST,
@@ -31,13 +38,6 @@ from AsgiDav.dav_error import (
     PRECONDITION_CODE_PropfindFiniteDepth,
     as_DAVError,
     get_http_status_string,
-)
-from AsgiDav._type import (
-    HTTPScope,
-    ASGIReceiveEvent,
-    ASGISendEvent,
-    HTTPRequestEvent,
-    ASGISendCallable,
 )
 
 __docformat__ = "reStructuredText"

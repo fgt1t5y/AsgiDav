@@ -22,9 +22,9 @@ import sys
 from typing import List
 
 from AsgiDav import util
+from AsgiDav._type import HTTPScope
 from AsgiDav.dav_error import HTTP_FORBIDDEN, DAVError
 from AsgiDav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
-from AsgiDav._type import HTTPScope
 
 __docformat__ = "reStructuredText"
 

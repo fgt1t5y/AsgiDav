@@ -88,6 +88,7 @@ from typing import Optional
 from urllib.parse import quote, unquote
 
 from AsgiDav import util, xml_tools
+from AsgiDav._type import HTTPScope
 from AsgiDav.dav_error import (
     HTTP_FORBIDDEN,
     HTTP_NOT_FOUND,
@@ -96,7 +97,6 @@ from AsgiDav.dav_error import (
     as_DAVError,
 )
 from AsgiDav.util import etree
-from AsgiDav._type import HTTPScope
 
 __docformat__ = "reStructuredText"
 

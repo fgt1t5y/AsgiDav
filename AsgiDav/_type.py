@@ -1,15 +1,14 @@
 from typing import (
-    TypedDict,
-    Literal,
-    Iterable,
-    Callable,
     Any,
     Awaitable,
-    Union,
+    Callable,
+    Iterable,
+    Literal,
     NotRequired,
+    TypedDict,
+    Union,
 )
 
-from AsgiDav import util
 from AsgiDav.fs_dav_provider import DAVProvider
 
 

@@ -15,9 +15,9 @@ Default configuration.
 """
 
 # from AsgiDav.mw.debug_filter import WsgiDavDebugFilter
+from AsgiDav.mw.cors import Cors
 from AsgiDav.mw.error_printer import ErrorPrinter
 from AsgiDav.mw.http_authenticator import HTTPAuthenticator
-from AsgiDav.mw.cors import Cors
 from AsgiDav.mw.request_resolver import RequestResolver
 
 __docformat__ = "reStructuredText"

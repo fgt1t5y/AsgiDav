@@ -1136,7 +1136,7 @@ async def parse_xml_body(scope: HTTPScope, receive, *, allow_empty=False):
         else:
             message = await receive()
 
-            requestbody = io.BytesIO(message.get("body", b"")).getbuffer()
+            requestbody = message.get("body", b"")
             scope.asgidav.all_input_read = 1
 
     if requestbody == b"":
@@ -1153,14 +1153,11 @@ async def parse_xml_body(scope: HTTPScope, receive, *, allow_empty=False):
         ) from None
 
     # If dumps of the body are desired, then this is the place to do it pretty:
-    if scope.asgidav.dump_response_body:
-        _logger.info(
-            "{} XML request body:\n{}".format(
-                scope.method,
-                to_str(xml_to_bytes(rootEL, pretty=True)),
-            )
-        )
-        scope.asgidav.dump_response_body = ""
+    # if scope.asgidav.dump_response_body:
+    #     _logger.info(
+    #         f"{scope.method} XML request body:\n{to_str(xml_to_bytes(rootEL, pretty=True))}"
+    #     )
+    #     scope.asgidav.dump_response_body = ""
 
     return rootEL
 
@@ -1228,12 +1225,9 @@ async def send_status_response(scope, send, e, *, add_headers=None, is_head=Fals
 async def send_multi_status_response(scope: HTTPScope, send, multistatus_elem):
     # If logging of the body is desired, then this is the place to do it
     # pretty:
-    if scope.asgidav.dump_response_body:
-        xml = "{} XML response body:\n{}".format(
-            scope.method,
-            to_str(xml_to_bytes(multistatus_elem, pretty=True)),
-        )
-        scope.asgidav.dump_response_body = xml
+    # if scope.asgidav.dump_response_body:
+    #     xml = f"{scope.method} XML response body:\n{to_str(xml_to_bytes(multistatus_elem, pretty=True))}"
+    #     scope.asgidav.dump_response_body = xml
 
     # Hotfix for Windows XP
     # PROPFIND XML response is not recognized, when pretty_print = True!

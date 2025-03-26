@@ -179,8 +179,8 @@ class FolderResource(DAVCollection):
     See also _DAVResource, DAVCollection, and FilesystemProvider.
     """
 
-    def __init__(self, path: str, environ: dict, file_path):
-        super().__init__(path, environ)
+    def __init__(self, path: str, scope: HTTPScope, file_path):
+        super().__init__(path, scope)
         self._file_path: str = file_path
         self.file_stat: os.stat_result = os.stat(self._file_path)
         self.fs_opts = self.provider
@@ -261,9 +261,9 @@ class FolderResource(DAVCollection):
         #     _logger.info(f"Skipping symlink {path}")
         # elif
         if os.path.isdir(fp):
-            res = FolderResource(path, self.environ, fp)
+            res = FolderResource(path, self.scope, fp)
         elif os.path.isfile(fp):
-            res = FileResource(path, self.environ, fp)
+            res = FileResource(path, self.scope, fp)
         else:
             _logger.debug(f"Skipping non-file {path}")
         return res

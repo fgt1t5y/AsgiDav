@@ -96,10 +96,11 @@ class RequestServer:
             _logger.error(f"Invalid HTTP method {requestmethod!r}")
             self._fail(HTTP_METHOD_NOT_ALLOWED)
 
-        if scope.method == "propfind":
-            await self.do_PROPFIND(scope, receive, send)
-        elif scope.method == "get":
-            await self.do_GET(scope, receive, send)
+        match scope.method:
+            case "PROPFIND":
+                await self.do_PROPFIND(scope, receive, send)
+            case "GET":
+                await self.do_GET(scope, receive, send)
 
     def _fail(self, value, context_info=None, src_exception=None, err_condition=None):
         """Wrapper to raise (and log) DAVError."""
@@ -247,7 +248,7 @@ class RequestServer:
         if scope.HTTP_DEPTH not in ("0", "1", "infinity"):
             self._fail(
                 HTTP_BAD_REQUEST,
-                "Invalid Depth header: {!r}.".format(scope.HTTP_DEPTH),
+                f"Invalid Depth header: {scope.HTTP_DEPTH!r}.",
             )
 
         if scope.HTTP_DEPTH == "infinity" and not self.allow_propfind_infinite:
@@ -260,8 +261,8 @@ class RequestServer:
         if res is None:
             self._fail(HTTP_NOT_FOUND, path)
 
-        if scope.asgidav.debug_break:
-            pass  # break point
+        # if scope.asgidav.debug_break:
+        #     pass  # break point
 
         self._evaluate_if_headers(res, scope)
 

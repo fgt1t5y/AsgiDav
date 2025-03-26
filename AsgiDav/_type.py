@@ -9,7 +9,7 @@ from typing import (
     Union,
 )
 
-from AsgiDav.fs_dav_provider import DAVProvider
+from AsgiDav.base_class import DAVProvider
 
 
 class ASGIVersions(TypedDict):
@@ -21,8 +21,11 @@ class AsgiDavAuth:
     user_name: str | None
 
 
-class AsgiConditionsContext:
+class AsgiDavConditions:
     _if: dict[str, Any] | None
+
+    def __init__(self) -> None:
+        self._if = None
 
 
 class AsgiDavContext:
@@ -31,14 +34,17 @@ class AsgiDavContext:
     verbose: int
     auth: AsgiDavAuth
     user_name: str
-    conditions: AsgiConditionsContext
+    conditions: AsgiDavConditions
     ifLockTokenList: list[Any]
     debug_break: bool | None
     dump_response_body: str | None
     all_input_read: int | None
 
     def __init__(self) -> None:
-        pass
+        self.auth = AsgiDavAuth()
+        self.conditions = AsgiDavConditions()
+
+        self.auth.user_name = None
 
 
 # HTTPScope with context
@@ -60,7 +66,7 @@ class HTTPScope:
     # extensions: NotRequired[dict[str, dict[object, object]]]
 
     HTTP_DEPTH: str | None
-    HTTP_OVERWRITE: Literal["T"] | Literal["F"] | None
+    HTTP_OVERWRITE: str | None
     HTTP_EXPECT: str | None
     HTTP_IF: str | None
     HTTP_IF_MODIFIED_SINCE: str | None
@@ -71,8 +77,8 @@ class HTTPScope:
     CONTENT_TYPE: str | None
     CONTENT_LENGTH: str | None
     HTTP_DESTINATION: str | None
-    HTTP_X_FORWARDED_PROTO: str
-    HTTP_HOST: str
+    HTTP_X_FORWARDED_PROTO: str | None
+    HTTP_HOST: str | None
     HTTP_TIMEOUT: str | None
     HTTP_LOCK_TOKEN: str | None
     HTTP_RANGE: str | None
@@ -91,32 +97,32 @@ class HTTPScope:
         self.raw_path = scope["raw_path"]
         self.query_string = scope["query_string"]
         self.root_path = scope["root_path"]
-        self.headers = self.headers_to_dict(scope["header"])
+        self.headers = self.headers_to_dict(scope["headers"])
         self.client = scope["client"]
         self.server = scope["server"]
         self.url_scheme = scope["scheme"] or "http"
 
-        self.HTTP_DEPTH = self.headers["depth"]
-        self.HTTP_OVERWRITE = self.headers["overwrite"]  # type: ignore
-        self.HTTP_EXPECT = self.headers["expect"]
-        self.HTTP_IF = self.headers["if"]
-        self.HTTP_IF_MODIFIED_SINCE = self.headers["if-modified-since"]
-        self.HTTP_IF_UNMODIFIED_SINCE = self.headers["if-unmodified-since"]
-        self.HTTP_IF_MATCH = self.headers["if-match"]
-        self.HTTP_IF_NONE_MATCH = self.headers["if-none-match"]
-        self.HTTP_CONTENT_ENCODING = self.headers["content-encoding"]
-        self.HTTP_CONTENT_RANGE = self.headers["content-range"]
-        self.CONTENT_TYPE = self.headers["content-type"]
-        self.CONTENT_LENGTH = self.headers["content-length"]
-        self.HTTP_DESTINATION = self.headers["destination"]
-        self.HTTP_X_FORWARDED_PROTO = self.headers["x-forwarded-proto"]
-        self.HTTP_HOST = self.headers["host"]
-        self.HTTP_TIMEOUT = self.headers["timeout"]
-        self.HTTP_LOCK_TOKEN = self.headers["lock-token"]
-        self.HTTP_RANGE = self.headers["range"]
+        self.HTTP_DEPTH = self.headers.get("depth")
+        self.HTTP_OVERWRITE = self.headers.get("overwrite")
+        self.HTTP_EXPECT = self.headers.get("expect")
+        self.HTTP_IF = self.headers.get("if")
+        self.HTTP_IF_MODIFIED_SINCE = self.headers.get("if-modified-since")
+        self.HTTP_IF_UNMODIFIED_SINCE = self.headers.get("if-unmodified-since")
+        self.HTTP_IF_MATCH = self.headers.get("if-match")
+        self.HTTP_IF_NONE_MATCH = self.headers.get("if-none-match")
+        self.HTTP_CONTENT_ENCODING = self.headers.get("content-encoding")
+        self.HTTP_CONTENT_RANGE = self.headers.get("content-range")
+        self.CONTENT_TYPE = self.headers.get("content-type")
+        self.CONTENT_LENGTH = self.headers.get("content-length")
+        self.HTTP_DESTINATION = self.headers.get("destination")
+        self.HTTP_X_FORWARDED_PROTO = self.headers.get("x-forwarded-proto")
+        self.HTTP_HOST = self.headers.get("host")
+        self.HTTP_TIMEOUT = self.headers.get("timeout")
+        self.HTTP_LOCK_TOKEN = self.headers.get("lock-token")
+        self.HTTP_RANGE = self.headers.get("range")
         self.SERVER_NAME = self.server[0]  # type: ignore
         self.SERVER_PORT = self.server[1]  # type: ignore
-        self.HTTP_IF_RANGE = self.headers["if-range"]
+        self.HTTP_IF_RANGE = self.headers.get("if-range")
 
         self.asgidav = AsgiDavContext()
 

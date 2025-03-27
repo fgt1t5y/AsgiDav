@@ -472,4 +472,5 @@ class FilesystemProvider(DAVProvider):
             raise DAVError(HTTP_FORBIDDEN, f"Symlink support is disabled: {fp!r}")
         if os.path.isdir(fp):
             return FolderResource(path, scope, fp)
+
         return FileResource(path, scope, fp)

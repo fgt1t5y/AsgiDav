@@ -25,7 +25,7 @@ class BaseMiddleware(ABC):
     """
 
     def __init__(self, app, next_app, config):
-        self.wsgidav_app = app
+        self.app = app
         self.next_app = next_app
         self.config = config
         self.verbose = config.get("verbose", 3)

@@ -1166,29 +1166,19 @@ async def send_status_response(scope, send, e, *, add_headers=None, is_head=Fals
     """Start a WSGI response for a DAVError or status code."""
     status = get_http_status_code(e)
     headers = []
+
     if add_headers:
         headers.extend(add_headers)
     if isinstance(e, DAVError) and e.add_headers:
         headers.extend(e.add_headers)
 
     if e in (HTTP_NOT_MODIFIED, HTTP_NO_CONTENT):
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 304,
-                "headers": [
-                    [b"Date", to_bytes(get_rfc1123_time())],
-                    [b"Content-Length", 0],
-                ],
-            }
-        )
+        headers.extend([("Date", get_rfc1123_time()), ("Content-Length", "0")])
 
-        await send(
-            {
-                "type": "http.response.body",
-                "body": b"",
-            }
-        )
+        await send_start_response(send, get_http_status_code(e), headers)
+        await send_body_response(send, b"")
+
+        return
 
     if e in (HTTP_OK, HTTP_CREATED):
         e = DAVError(e)

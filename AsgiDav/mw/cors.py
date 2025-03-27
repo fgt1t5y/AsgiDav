@@ -19,6 +19,7 @@ _logger = util.get_module_logger(__name__)
 class Cors(BaseMiddleware):
     def __init__(self, app, next_app, config):
         super().__init__(app, next_app, config)
+
         opts = config.get("cors", None)
         if opts is None:
             opts = {}
@@ -129,4 +130,4 @@ class Cors(BaseMiddleware):
                 await util.send_start_response(send, 204, resp_headers)
                 await util.send_body_response(send, b"")
 
-        await send(scope, receive, wrapped_start_response)
+        await self.next_app(scope, receive, send)

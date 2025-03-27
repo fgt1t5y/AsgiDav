@@ -14,6 +14,7 @@ from AsgiDav.base_class import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    DAVProvider,
     HTTPRequestEvent,
     HTTPScope,
 )
@@ -39,6 +40,7 @@ from AsgiDav.dav_error import (
     as_DAVError,
     get_http_status_string,
 )
+from AsgiDav.dav_provider import DAVNonCollection
 
 __docformat__ = "reStructuredText"
 
@@ -99,8 +101,30 @@ class RequestServer:
         match scope.method:
             case "PROPFIND":
                 await self.do_PROPFIND(scope, receive, send)
+            case "PROPPATCH":
+                await self.do_PROPPATCH(scope, receive, send)
+            case "MKCOL":
+                await self.do_MKCOL(scope, receive, send)
+            case "POST":
+                await self.do_POST(scope, receive, send)
+            case "DELETE":
+                await self.do_DELETE(scope, receive, send)
+            case "PUT":
+                await self.do_PUT(scope, receive, send)
+            case "COPY":
+                await self.do_COPY(scope, receive, send)
+            case "MOVE":
+                await self.do_MOVE(scope, receive, send)
+            case "LOCK":
+                await self.do_LOCK(scope, receive, send)
+            case "UNLOCK":
+                await self.do_UNLOCK(scope, receive, send)
+            case "OPTIONS":
+                await self.do_OPTIONS(scope, receive, send)
             case "GET":
                 await self.do_GET(scope, receive, send)
+            case "HEAD":
+                await self.do_HEAD(scope, receive, send)
 
     def _fail(self, value, context_info=None, src_exception=None, err_condition=None):
         """Wrapper to raise (and log) DAVError."""
@@ -123,12 +147,15 @@ class RequestServer:
           returned.
         """
         assert success_code in (HTTP_CREATED, HTTP_NO_CONTENT, HTTP_OK)
+
         if not error_list:
             # Status OK
-            return util.send_status_response(scope, send, success_code)
+            await util.send_status_response(scope, send, success_code)
+            return
         if len(error_list) == 1 and error_list[0][0] == root_res.get_href():
             # Only one error that occurred on the root resource
-            return util.send_status_response(scope, send, error_list[0][1])
+            await util.send_status_response(scope, send, error_list[0][1])
+            return
 
         # Multiple errors, or error on one single child
         multistatusEL = xml_tools.make_multistatus_el()
@@ -488,7 +515,7 @@ class RequestServer:
 
         await util.send_status_response(scope, send, HTTP_CREATED)
 
-    def do_POST(self, scope: HTTPScope, send):
+    async def do_POST(self, scope: HTTPScope, receive, send):
         """
         @see http://www.webdav.org/specs/rfc4918.html#METHOD_POST
         @see http://stackoverflow.com/a/22606899/19166
@@ -563,7 +590,7 @@ class RequestServer:
             error_list = [(res.get_href(), as_DAVError(e))]
             handled = True
         if handled:
-            return self._send_response(scope, send, res, HTTP_NO_CONTENT, error_list)
+            await self._send_response(scope, send, res, HTTP_NO_CONTENT, error_list)
 
         # --- Let provider implement own recursion ----------------------------
 
@@ -588,9 +615,7 @@ class RequestServer:
                     error_list = res.delete()
                 except Exception as e:
                     error_list = [(res.get_href(), as_DAVError(e))]
-                return self._send_response(
-                    scope, send, res, HTTP_NO_CONTENT, error_list
-                )
+                await self._send_response(scope, send, res, HTTP_NO_CONTENT, error_list)
 
         # --- Implement file-by-file processing -------------------------------
 
@@ -619,27 +644,36 @@ class RequestServer:
 
         # --- Send response ---------------------------------------------------
 
-        return self._send_response(scope, send, res, HTTP_NO_CONTENT, error_list)
+        await self._send_response(scope, send, res, HTTP_NO_CONTENT, error_list)
 
-    def _stream_data(self, scope, block_size):
+    async def _stream_data(self, scope: HTTPScope, receive, block_size):
         """Get the data."""
         while True:
-            buf = scope["wsgi.input"].read(block_size)
-            if buf == b"":
+            message: HTTPRequestEvent = await receive()
+            body = io.BytesIO(message.get("body", b""))
+            more_body = message.get("more_body", False)
+
+            while True:
+                chunk = body.read(block_size)
+
+                if not chunk:
+                    break
+
+                yield chunk
+
+            if not more_body:
                 break
-            scope["wsgidav.some_input_read"] = 1
-            yield buf
-        scope["wsgidav.all_input_read"] = 1
+
+        scope.asgidav.all_input_read = 1
 
     async def do_PUT(self, scope: HTTPScope, receive, send):
         """
         @see: http://www.webdav.org/specs/rfc4918.html#METHOD_PUT
         """
         path = scope.path
-        provider = self._davProvider
-        res = provider.get_resource_inst(path, scope)
-        parentRes = provider.get_resource_inst(util.get_uri_parent(path), scope)
-
+        provider: DAVProvider = self._davProvider
+        res: DAVNonCollection = provider.get_resource_inst(path, scope)
+        parentRes = provider.get_resource_inst(util.get_uri_parent(path), scope)  # type: ignore
         isnewfile = res is None
 
         # Test for unsupported stuff
@@ -671,10 +705,10 @@ class RequestServer:
             self._check_write_permission(res, "0", scope)
 
         hasErrors = False
-        try:
-            data_stream = self._stream_data(scope, self.block_size)
 
-            fileobj = res.begin_write(content_type=scope.CONTENT_TYPE)
+        try:
+            data_stream = self._stream_data(scope, receive, self.block_size)
+            fileobj: io.BytesIO = res.begin_write(content_type=scope.CONTENT_TYPE)
 
             # Process the data in the body.
 
@@ -682,11 +716,8 @@ class RequestServer:
             # If it doesn't, itearate the stream and call write() for each
             # iteration. This gives providers more flexibility in how they
             # consume the data.
-            if getattr(fileobj, "writelines", None):
-                fileobj.writelines(data_stream)
-            else:
-                for data in data_stream:
-                    fileobj.write(data)
+            async for data in data_stream:
+                fileobj.write(data)
 
             fileobj.close()
 
@@ -704,11 +735,13 @@ class RequestServer:
                 headers = [("ETag", f'"{etag}"')]
 
         if isnewfile:
-            return util.send_status_response(
+            await util.send_status_response(
                 scope, send, HTTP_CREATED, add_headers=headers
             )
 
-        return util.send_status_response(
+            return
+
+        await util.send_status_response(
             scope, send, HTTP_NO_CONTENT, add_headers=headers
         )
 
@@ -923,9 +956,7 @@ class RequestServer:
             error_list = [(src_res.get_href(), as_DAVError(e))]
             handled = True
         if handled:
-            return self._send_response(
-                scope, send, src_res, HTTP_NO_CONTENT, error_list
-            )
+            await self._send_response(scope, send, src_res, HTTP_NO_CONTENT, error_list)
 
         # --- Cleanup destination before copy/move ----------------------------
 
@@ -987,7 +1018,7 @@ class RequestServer:
                     _debug_exception(e)
                     error_list = [(src_res.get_href(), as_DAVError(e))]
 
-                return self._send_response(
+                await self._send_response(
                     scope, send, src_res, success_code, error_list
                 )
 

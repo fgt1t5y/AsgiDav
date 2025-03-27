@@ -1,6 +1,7 @@
 from AsgiDav.app import WsgiDAVApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 from AsgiDav.mw.cors import Cors
+from AsgiDav.mw.logging import Logging
 from AsgiDav.mw.request_resolver import RequestResolver
 
 root_path = "D:/data"
@@ -24,4 +25,5 @@ config = {
     "middleware_stack": [RequestResolver],
     "cors": {"allow_origin": "*"},
 }
+
 app = WsgiDAVApp(config)

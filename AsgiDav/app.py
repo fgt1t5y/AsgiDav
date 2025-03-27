@@ -29,17 +29,17 @@ For every request:
 
     Add or modify info in the WSGI ``scope``:
 
-        scope["root_path"]
+        scope.root_path
             Mount-point of the current share.
-        scope["PATH_INFO"]
+        scope.path
             Resource path, relative to the mount path.
-        scope["wsgidav.provider"]
+        scope.asgidav.provider
             DAVProvider object that is registered for handling the current
             request.
-        scope["wsgidav.config"]
+        scope.asgidav.config
             Configuration dictionary.
-        scope["wsgidav.verbose"]
-            Debug level [0-3].
+        scope.asgidav.verbose
+            Debug level [0-5].
 
     Log the HTTP request, then pass the request to the first middleware.
 
@@ -51,7 +51,6 @@ import copy
 import inspect
 import platform
 import sys
-import time
 from typing import Any
 from urllib.parse import unquote
 
@@ -452,114 +451,5 @@ class WsgiDAVApp:
         assert scope.root_path in ("", "/") or not scope.root_path.endswith("/")
         # PATH_INFO starts with '/'
         assert path == "" or path.startswith("/")
-
-        start_time = time.time()
-
-        async def _start_response_wrapper(status, response_headers, exc_info=None):
-            # Postprocess response headers
-            headerDict = {}
-            print(status)
-            for header, value in response_headers:
-                if header.lower() in headerDict:
-                    _logger.error(f"Duplicate header in response: {header}")
-                headerDict[header.lower()] = value
-
-            # Check if we should close the connection after this request.
-            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
-            forceCloseConnection = False
-            currentContentLength = headerDict.get("content-length")
-            statusCode = int(status.split(" ", 1)[0])
-            contentLengthRequired = (
-                scope.method != "HEAD"
-                and statusCode >= 200
-                and statusCode not in (204, 304)
-            )
-            # _logger.info(environ["REQUEST_METHOD"], statusCode, contentLengthRequired)
-            if contentLengthRequired and currentContentLength in (None, ""):
-                # A typical case: a GET request on a virtual resource, for which
-                # the provider doesn't know the length
-                _logger.error(
-                    f"Missing required Content-Length header in {statusCode}-response: closing connection"
-                )
-                forceCloseConnection = True
-            elif type(currentContentLength) is not str:
-                _logger.error(
-                    "Invalid Content-Length header in response ({!r}): closing connection".format(
-                        headerDict.get("content-length")
-                    )
-                )
-                forceCloseConnection = True
-
-            # HOTFIX for Vista and Windows 7 (GC issue 13, issue 23)
-            # It seems that we must read *all* of the request body, otherwise
-            # clients may miss the response.
-            # For example Vista MiniRedir didn't understand a 401 response,
-            # when trying an anonymous PUT of big files. As a consequence, it
-            # doesn't retry with credentials and the file copy fails.
-            # (XP is fine however).
-            util.read_and_discard_input(scope)
-
-            # Make sure the socket is not reused, unless we are 100% sure all
-            # current input was consumed
-            if util.get_content_length(scope) != 0 and not scope.asgidav.all_input_read:
-                _logger.warning(
-                    "Input stream not completely consumed: closing connection."
-                )
-                forceCloseConnection = True
-
-            if forceCloseConnection and headerDict.get("connection") != "close":
-                _logger.warning("Adding 'Connection: close' header.")
-                response_headers.append(("Connection", "close"))
-
-            # Log request
-            if self.verbose >= 3:
-                userInfo = scope.asgidav.auth.user_name
-                if not userInfo:
-                    userInfo = "(anonymous)"
-                extra = []
-                if scope.HTTP_DESTINATION:
-                    extra.append(f'dest="{scope.HTTP_DESTINATION}"')
-                if scope.CONTENT_LENGTH != "":
-                    extra.append(f"length={scope.CONTENT_LENGTH}")
-                if scope.HTTP_DEPTH:
-                    extra.append(f"depth={scope.HTTP_DEPTH}")
-                if scope.HTTP_RANGE:
-                    extra.append(f"range={scope.HTTP_RANGE}")
-                if scope.HTTP_OVERWRITE:
-                    extra.append(f"overwrite={scope.HTTP_OVERWRITE}")
-                if self.verbose >= 3 and scope.HTTP_EXPECT:
-                    extra.append(f'expect="{scope.HTTP_EXPECT}"')
-                if self.verbose >= 4 and scope.HTTP_CONNECTION:
-                    extra.append(f'connection="{scope.HTTP_CONNECTION}"')
-                if self.verbose >= 4 and scope.HTTP_USER_AGENT:
-                    extra.append(f'agent="{scope.HTTP_USER_AGENT}"')
-                if self.verbose >= 4 and scope.HTTP_TRANSFER_ENCODING:
-                    extra.append(f"transfer-enc={scope.HTTP_TRANSFER_ENCODING}")
-
-                if self.verbose >= 3:
-                    extra.append(f"elap={time.time() - start_time:.3f}sec")
-                extra = ", ".join(extra)
-
-                # This is the CherryPy format:
-                #   127.0.0.1 - - [08/Jul/2009:17:25:23] "GET /loginPrompt?redirect=/renderActionList%3Frelation%3Dpersonal%26key%3D%26filter%3DprivateSchedule&reason=0 HTTP/1.1" 200 1944 "http://127.0.0.1:8002/command?id=CMD_Schedule" "Mozilla/5.0 (Windows; U; Windows NT 6.0; de; rv:1.9.1) Gecko/20090624 Firefox/3.5"  # noqa
-                _logger.info(
-                    '{addr} - {user} - [{time}] "{method} {path}" {extra} -> {status}'.format(
-                        addr=scope.client,
-                        user=userInfo,
-                        time=util.get_log_time(),
-                        method=scope.method,
-                        path=util.safe_re_encode(
-                            scope.path,
-                            sys.stdout.encoding if sys.stdout.encoding else "utf-8",
-                        ),
-                        extra=extra,
-                        status=status,
-                        # response_headers.get(""), # response Content-Length
-                        # referer
-                    )
-                )
-
-                await util.send_start_response(send, 204, response_headers)
-                await util.send_body_response(send, b"")
 
         await self.application(scope, receive, send)

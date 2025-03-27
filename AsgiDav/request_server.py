@@ -12,7 +12,6 @@ from urllib.parse import unquote, urlparse
 from AsgiDav import util, xml_tools
 from AsgiDav.base_class import (
     ASGIReceiveEvent,
-    ASGISendCallable,
     ASGISendEvent,
     DAVProvider,
     HTTPRequestEvent,
@@ -75,7 +74,6 @@ class RequestServer:
             _logger.warning("Missing 'wsgidav.auth.user_name' in environ")
 
         scope.asgidav.user_name = scope.asgidav.auth.user_name or "anonymous"
-        requestmethod = scope.method
 
         self.block_size = scope.asgidav.config.get("block_size", DEFAULT_BLOCK_SIZE)
 
@@ -84,19 +82,10 @@ class RequestServer:
             scope.HTTP_DEPTH = scope.HTTP_DEPTH.lower()
 
         if scope.HTTP_OVERWRITE is not None:
-            scope.HTTP_OVERWRITE = scope.HTTP_OVERWRITE.upper()  # type: ignore
+            scope.HTTP_OVERWRITE = scope.HTTP_OVERWRITE.upper()
 
         if scope.HTTP_EXPECT:
             pass
-
-        # Dispatch HTTP request methods to 'do_METHOD()' handlers
-        method = None
-        if requestmethod in self._possible_methods:
-            method_name = f"do_{requestmethod}"
-            method = getattr(self, method_name, None)
-        if not method:
-            _logger.error(f"Invalid HTTP method {requestmethod!r}")
-            self._fail(HTTP_METHOD_NOT_ALLOWED)
 
         match scope.method:
             case "PROPFIND":
@@ -497,6 +486,9 @@ class RequestServer:
             self._fail(HTTP_BAD_REQUEST, "Depth must be '0'.")
 
         if provider.exists(path, scope):
+            await util.send_start_response(send, HTTP_METHOD_NOT_ALLOWED, [])
+            await util.send_body_response(send, b"")
+
             self._fail(
                 HTTP_METHOD_NOT_ALLOWED,
                 "MKCOL can only be executed on an unmapped URL.",

@@ -453,8 +453,4 @@ class WsgiDAVApp:
         # PATH_INFO starts with '/'
         assert path == "" or path.startswith("/")
 
-        # await self.application(scope, receive, send)
-
-        app = RequestServer(provider)
-
-        await app(scope, receive, send)
+        await self.application(scope, receive, send)

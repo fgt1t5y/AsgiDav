@@ -1498,7 +1498,8 @@ class RequestServer:
     async def do_GET(self, scope: HTTPScope, receive, send):
         async for chunk in self._send_resource(scope, receive, send, False):
             await util.send_body_response(send, chunk, True)
-        await util.send_body_response(send, chunk, True)
+
+        await util.send_body_response(send, b"", False)
 
     async def do_HEAD(self, scope: HTTPScope, receive, send):
         await self._send_head_resource(scope, receive, send)
@@ -1533,6 +1534,7 @@ class RequestServer:
         self._evaluate_if_headers(res, scope)
 
         filesize = res.get_content_length()
+
         if filesize is None:
             filesize = -1  # flag logic to read until EOF
 
@@ -1550,6 +1552,7 @@ class RequestServer:
             or not res.support_ranges()
             or filesize == 0
         )
+
         if scope.HTTP_RANGE and scope.HTTP_IF_RANGE and not do_ignore_ranges:
             if_range = scope.HTTP_IF_RANGE
             # Try as http-date first (Return None, if invalid date string)
@@ -1565,6 +1568,7 @@ class RequestServer:
                     do_ignore_ranges = True
 
         is_partial_ranges = False
+
         if scope.HTTP_RANGE and not do_ignore_ranges:
             is_partial_ranges = True
             list_ranges, _totallength = util.obtain_content_ranges(
@@ -1630,7 +1634,7 @@ class RequestServer:
 
         contentlengthremaining = range_length
         try:
-            while 1:
+            while True:
                 if (
                     contentlengthremaining < 0
                     or contentlengthremaining > self.block_size

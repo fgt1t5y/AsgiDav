@@ -10,13 +10,14 @@ responses.
 import traceback
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dav_error import (
     HTTP_INTERNAL_ERROR,
     HTTP_NO_CONTENT,
     HTTP_NOT_MODIFIED,
     DAVError,
     as_DAVError,
-    get_http_status_string,
+    get_http_status_code,
 )
 from AsgiDav.mw.base_mw import BaseMiddleware
 
@@ -36,44 +37,14 @@ class ErrorPrinter(BaseMiddleware):
     def is_disabled(self):
         return self.err_config.get("enable") is False
 
-    def __call__(self, environ, start_response):
+    async def __call__(self, scope: HTTPScope, receive, send):
         # Intercept start_response
-        sub_app_start_response = util.SubAppStartResponse()
-
         try:
             try:
                 # request_server app may be a generator (for example the GET handler)
                 # So we must iterate - not return self.next_app(..)!
                 # Otherwise the we could not catch exceptions here.
-                response_started = False
-                app_iter = self.next_app(environ, sub_app_start_response)
-                for v in app_iter:
-                    # Start response (the first time)
-                    if not response_started:
-                        # Success!
-                        start_response(
-                            sub_app_start_response.status,
-                            sub_app_start_response.response_headers,
-                            sub_app_start_response.exc_info,
-                        )
-                    response_started = True
-
-                    yield v
-
-                # Close out iterator
-                if hasattr(app_iter, "close"):
-                    app_iter.close()
-
-                # Start response (if it hasn't been done yet)
-                if not response_started:
-                    # Success!
-                    start_response(
-                        sub_app_start_response.status,
-                        sub_app_start_response.response_headers,
-                        sub_app_start_response.exc_info,
-                    )
-
-                return
+                await self.next_app(scope, receive, send)
             except DAVError:
                 raise  # Deliberately generated or already converted
             except Exception as e:
@@ -84,7 +55,8 @@ class ErrorPrinter(BaseMiddleware):
         except DAVError as e:
             _logger.debug(f"Caught {e}")
 
-            status = get_http_status_string(e)
+            status = get_http_status_code(e)
+
             # Dump internal errors to console
             if e.value == HTTP_INTERNAL_ERROR:
                 tb = traceback.format_exc(10)
@@ -94,10 +66,13 @@ class ErrorPrinter(BaseMiddleware):
             elif e.value in (HTTP_NOT_MODIFIED, HTTP_NO_CONTENT):
                 # _logger.warning("Forcing empty error response for {}".format(e.value))
                 # See paste.lint: these code don't have content
-                start_response(
-                    status, [("Content-Length", "0"), ("Date", util.get_rfc1123_time())]
+                await util.send_start_response(
+                    send,
+                    status,
+                    [("Content-Length", "0"), ("Date", util.get_rfc1123_time())],
                 )
-                yield b""
+                await util.send_body_response(send, b"")
+
                 return
 
             # If exception has pre-/post-condition: return as XML response,
@@ -105,7 +80,8 @@ class ErrorPrinter(BaseMiddleware):
             content_type, body = e.get_response_page()
             headers = e.add_headers or []
             # TODO: provide exc_info=sys.exc_info()?
-            start_response(
+            await util.send_start_response(
+                send,
                 status,
                 [
                     ("Content-Type", content_type),
@@ -114,5 +90,4 @@ class ErrorPrinter(BaseMiddleware):
                 ]
                 + headers,
             )
-            yield body
-            return
+            await util.send_body_response(send, body)

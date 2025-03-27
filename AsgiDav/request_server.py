@@ -486,9 +486,6 @@ class RequestServer:
             self._fail(HTTP_BAD_REQUEST, "Depth must be '0'.")
 
         if provider.exists(path, scope):
-            await util.send_start_response(send, HTTP_METHOD_NOT_ALLOWED, [])
-            await util.send_body_response(send, b"")
-
             self._fail(
                 HTTP_METHOD_NOT_ALLOWED,
                 "MKCOL can only be executed on an unmapped URL.",

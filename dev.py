@@ -1,5 +1,6 @@
 from AsgiDav.app import WsgiDAVApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
+from AsgiDav.mw.error_printer import ErrorPrinter
 from AsgiDav.mw.request_resolver import RequestResolver
 
 root_path = "D:/data"
@@ -20,7 +21,7 @@ config = {
     },
     "property_manager": True,  # True: use property_manager.PropertyManager
     "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
-    "middleware_stack": [RequestResolver],
+    "middleware_stack": [ErrorPrinter, RequestResolver],
     "cors": {"allow_origin": "*"},
 }
 

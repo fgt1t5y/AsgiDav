@@ -1476,24 +1476,17 @@ class RequestServer:
         if scope.asgidav.config.get("add_header_MS_Author_Via", False):
             headers.append(("MS-Author-Via", "DAV"))
 
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [
-                    [b"Content-Type", b"text/html; charset=utf-8"],
-                    [b"Date", util.to_bytes(util.get_rfc1123_time())],
-                    [b"Content-Length", 0],
-                    [b"DAV", dav_compliance_level],
-                ],
-            }
+        await util.send_start_response(
+            send,
+            200,
+            [
+                ("Content-Type", "text/html; charset=utf-8"),
+                ("Date", util.get_rfc1123_time()),
+                ("Content-Length", "0"),
+                ("DAV", dav_compliance_level),
+            ],
         )
-        await send(
-            {
-                "type": "http.response.body",
-                "body": b"",
-            }
-        )
+        await util.send_body_response(send, b"")
 
     async def do_GET(self, scope: HTTPScope, receive, send):
         async for chunk in self._send_resource(scope, receive, send, False):

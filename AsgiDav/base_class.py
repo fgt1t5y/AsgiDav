@@ -101,7 +101,7 @@ class DAVProvider(ABC):
         """
         raise NotImplementedError
 
-    def exists(self, path: str, environ: dict):
+    def exists(self, path: str, scope: "HTTPScope"):
         """Return True, if path maps to an existing resource.
 
         This method should only be used, if no other information is queried
@@ -109,7 +109,7 @@ class DAVProvider(ABC):
 
         This method SHOULD be overridden by a more efficient implementation.
         """
-        return self.get_resource_inst(path, environ) is not None
+        return self.get_resource_inst(path, scope) is not None
 
     def is_collection(self, path: str, environ: dict):
         """Return True, if path maps to an existing collection resource.

@@ -22,7 +22,7 @@ config = {
     },
     "property_manager": True,  # True: use property_manager.PropertyManager
     "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
-    "middleware_stack": [RequestResolver],
+    "middleware_stack": [],
     "cors": {"allow_origin": "*"},
 }
 

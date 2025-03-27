@@ -165,12 +165,11 @@ class RequestResolver(BaseMiddleware):
 
         # We want to answer OPTIONS(*), even if no handler was registered for
         # the top-level realm (e.g. required to map drive letters).
-
         provider = scope.asgidav.provider
         config = scope.asgidav.config
         hotfixes = util.get_dict_value(config, "hotfixes", as_dict=True)
-
         is_asterisk_options = scope.method == "OPTIONS" and path == "*"
+
         if path == "/":
             # Hotfix for WinXP / Vista: accept '/' for a '*'
             treat_as_asterisk = hotfixes.get("treat_root_options_as_asterisk")
@@ -210,8 +209,9 @@ class RequestResolver(BaseMiddleware):
                 headers.append(("MS-Author-Via", "DAV"))
 
             await util.send_start_response(send, 200, headers)
-
             await util.send_body_response(send, b"")
+
+            return
 
         if provider is None:
             raise DAVError(

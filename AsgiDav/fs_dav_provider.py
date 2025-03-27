@@ -186,7 +186,7 @@ class FolderResource(DAVCollection):
         self.fs_opts = self.provider
         # Setting the name from the file path should fix the case on Windows
         self.name = os.path.basename(self._file_path)
-        self.name = util.to_str(self.name)  # .encode("utf8")
+        self.name = util.to_str(self.name)
 
     # Getter methods for standard live properties
     def get_creation_date(self):

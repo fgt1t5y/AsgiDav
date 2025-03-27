@@ -1465,11 +1465,9 @@ class RequestServer:
         )
 
     async def do_GET(self, scope: HTTPScope, receive, send):
-        async for chunk in self._send_resource(
-            scope, receive, send, is_head_method=False
-        ):
-            await send({"type": "http.response.body", "body": chunk, "more_body": True})
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        async for chunk in self._send_resource(scope, receive, send, False):
+            await util.send_body_response(send, chunk, True)
+        await util.send_body_response(send, chunk, True)
 
     async def do_HEAD(self, scope: HTTPScope, receive, send):
         await self._send_head_resource(scope, receive, send)
@@ -1586,13 +1584,13 @@ class RequestServer:
                     f"bytes {range_start}-{range_end}/{filesize}",
                 )
             )
-            await self.send_start_response(send, 206, response_headers)
+            await util.send_start_response(send, 206, response_headers)
         else:
-            await self.send_start_response(send, 200, response_headers)
+            await util.send_start_response(send, 200, response_headers)
 
         # Return empty body for HEAD requests
         if is_head_method:
-            await self.send_body_response(send, b"")
+            await util.send_body_response(send, b"")
 
         fileobj = res.get_content()
 
@@ -1731,26 +1729,9 @@ class RequestServer:
                     f"bytes {range_start}-{range_end}/{filesize}",
                 )
             )
-            await self.send_start_response(send, 206, response_headers)
+            await util.send_start_response(send, 206, response_headers)
         else:
-            await self.send_start_response(send, 200, response_headers)
+            await util.send_start_response(send, 200, response_headers)
 
         # Return empty body for HEAD requests
-        await self.send_body_response(send, b"")
-
-    async def send_start_response(
-        self, send: ASGISendCallable, status_code: int, headers: list[str]
-    ):
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status_code,
-                "headers": (
-                    (key.encode("utf-8"), value.encode("utf-8"))
-                    for key, value in headers
-                ),
-            }
-        )
-
-    async def send_body_response(self, send: ASGISendCallable, body: bytes):
-        await send({"type": "http.response.body", "body": body})
+        await util.send_body_response(send, b"")

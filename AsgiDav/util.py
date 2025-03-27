@@ -9,7 +9,6 @@ Miscellaneous support functions for WsgiDAV.
 import base64
 import calendar
 import collections.abc
-import io
 import logging
 import mimetypes
 import os
@@ -17,7 +16,6 @@ import re
 import stat
 import sys
 import time
-import warnings
 from copy import deepcopy
 from email.utils import formatdate, parsedate
 from hashlib import md5
@@ -26,7 +24,7 @@ from typing import Any, Iterable, Optional, Tuple
 from urllib.parse import quote
 
 from AsgiDav import __version__
-from AsgiDav.base_class import HTTPScope
+from AsgiDav.base_class import ASGISendCallable, HTTPScope
 from AsgiDav.dav_error import (
     HTTP_BAD_REQUEST,
     HTTP_CREATED,
@@ -520,7 +518,7 @@ def deep_update(d: Any, u: Any):
             # if type(prev_val) in (bool, float, int, str):
             if prev_val is None or type(prev_val) in (bool, float, int, str):
                 # Prev. values is a scalar: replace it with a copy of the new dict
-                d[k] = v.copy()
+                d[k] = v.copy()  # type: ignore
             else:
                 # Merge new values into prev. dict
                 d[k] = deep_update(d.get(k, {}), v)
@@ -654,7 +652,9 @@ def dynamic_instantiate_class_from_opts(options, *, expand=None):
         required="class",
         msg="Invalid class instantiation options",
     )
+
     class_name = options.pop("class")
+
     return dynamic_instantiate_class(class_name, options, expand=expand)
 
 
@@ -1732,3 +1732,23 @@ def guess_mime_type(url):
     if not mimetype:
         mimetype = "application/octet-stream"
     return mimetype
+
+
+async def send_start_response(
+    send: ASGISendCallable, status_code: int, headers: list[tuple[str, str]]
+):
+    await send(
+        {
+            "type": "http.response.start",
+            "status": status_code,
+            "headers": (
+                (key.encode("utf-8"), value.encode("utf-8")) for key, value in headers
+            ),
+        }
+    )
+
+
+async def send_body_response(
+    send: ASGISendCallable, body: bytes, more_body: bool = False
+):
+    await send({"type": "http.response.body", "body": body, "more_body": more_body})

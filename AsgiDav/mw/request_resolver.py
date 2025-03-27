@@ -95,6 +95,7 @@ header, if present, to::
 """
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.dav_error import HTTP_NOT_FOUND, DAVError
 from AsgiDav.mw.base_mw import BaseMiddleware
 from AsgiDav.request_server import RequestServer
@@ -156,20 +157,20 @@ _logger = util.get_module_logger(__name__)
 
 
 class RequestResolver(BaseMiddleware):
-    def __init__(self, wsgidav_app, next_app, config):
-        super().__init__(wsgidav_app, next_app, config)
+    def __init__(self, app, next_app, config):
+        super().__init__(app, next_app, config)
 
-    def __call__(self, environ, start_response):
-        path = environ["PATH_INFO"]
+    async def __call__(self, scope: HTTPScope, receive, send):
+        path = scope.path
 
         # We want to answer OPTIONS(*), even if no handler was registered for
         # the top-level realm (e.g. required to map drive letters).
 
-        provider = environ["wsgidav.provider"]
-        config = environ["wsgidav.config"]
+        provider = scope.asgidav.provider
+        config = scope.asgidav.config
         hotfixes = util.get_dict_value(config, "hotfixes", as_dict=True)
 
-        is_asterisk_options = environ["REQUEST_METHOD"] == "OPTIONS" and path == "*"
+        is_asterisk_options = scope.method == "OPTIONS" and path == "*"
         if path == "/":
             # Hotfix for WinXP / Vista: accept '/' for a '*'
             treat_as_asterisk = hotfixes.get("treat_root_options_as_asterisk")
@@ -205,12 +206,12 @@ class RequestResolver(BaseMiddleware):
                 ("Date", util.get_rfc1123_time()),
             ]
 
-            if environ["wsgidav.config"].get("add_header_MS_Author_Via", False):
+            if scope.asgidav.config.get("add_header_MS_Author_Via", False):
                 headers.append(("MS-Author-Via", "DAV"))
 
-            start_response("200 OK", headers)
-            yield b""
-            return
+            await util.send_start_response(send, 200, headers)
+
+            await util.send_body_response(send, b"")
 
         if provider is None:
             raise DAVError(
@@ -220,10 +221,5 @@ class RequestResolver(BaseMiddleware):
         # Let the appropriate resource provider for the realm handle the
         # request
         app = RequestServer(provider)
-        app_iter = app(environ, start_response)
 
-        yield from app_iter
-
-        if hasattr(app_iter, "close"):
-            app_iter.close()
-        return
+        await app(scope, receive, send)

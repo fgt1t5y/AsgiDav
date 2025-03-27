@@ -231,7 +231,7 @@ class FolderResource(DAVCollection):
         # if "temp" in self._file_path:
         #     raise RuntimeError("Oops")
         for name in os.listdir(self._file_path):
-            if not util.is_str(name):
+            if isinstance(name, bytes):
                 name = name.decode(sys.getfilesystemencoding())
             assert util.is_str(name)
             # Skip non files (links and mount points)

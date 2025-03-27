@@ -17,13 +17,14 @@ _logger = util.get_module_logger(__name__)
 
 
 class Cors(BaseMiddleware):
-    def __init__(self, wsgidav_app, next_app, config):
-        super().__init__(wsgidav_app, next_app, config)
+    def __init__(self, app, next_app, config):
+        super().__init__(app, next_app, config)
         opts = config.get("cors", None)
         if opts is None:
             opts = {}
 
-        allow_origins = opts.get("allow_origin")
+        allow_origins = opts.get("allow_origin", [])
+
         if type(allow_origins) is str:
             allow_origins = allow_origins.strip()
             if allow_origins != "*":
@@ -74,7 +75,7 @@ class Cors(BaseMiddleware):
         """Optionally return True to skip this module on startup."""
         return not self.get_config("cors.allow_origin", False)
 
-    def __call__(self, scope: HTTPScope, send):
+    async def __call__(self, scope, receive: HTTPScope, send):
         method = scope.method.upper()
         origin = scope.HTTP_ORIGIN
         ac_req_meth = scope.HTTP_ACCESS_CONTROL_REQUEST_METHOD
@@ -114,16 +115,18 @@ class Cors(BaseMiddleware):
             if acao_headers:
                 resp_headers += acao_headers + self.preflight_headers
 
-            start_response("204 No Content", resp_headers)
-            return [b""]
+            await util.send_start_response(send, 204, resp_headers)
+            await util.send_body_response(send, b"")
 
         # non_preflight CORS request
-        def wrapped_start_response(status, headers, exc_info=None):
+        async def wrapped_start_response(status, headers, exc_info=None):
             if acao_headers:
                 util.update_headers_in_place(
                     headers,
                     acao_headers + self.non_preflight_headers,
                 )
-            start_response(status, headers, exc_info)
 
-        return self.next_app(scope, wrapped_start_response)
+                await util.send_start_response(send, 204, resp_headers)
+                await util.send_body_response(send, b"")
+
+        await send(scope, receive, wrapped_start_response)

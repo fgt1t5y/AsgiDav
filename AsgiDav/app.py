@@ -51,6 +51,8 @@ import copy
 import inspect
 import platform
 import sys
+import time
+from typing import Any
 from urllib.parse import unquote
 
 from AsgiDav import __version__, util
@@ -63,7 +65,6 @@ from AsgiDav.lock_man.lock_storage import LockStorageDict
 from AsgiDav.mw.base_mw import BaseMiddleware
 from AsgiDav.mw.http_authenticator import HTTPAuthenticator
 from AsgiDav.prop_man.property_manager import PropertyManager
-from AsgiDav.request_server import RequestServer
 
 __docformat__ = "reStructuredText"
 
@@ -79,19 +80,22 @@ MIN_PYTHON_VERSION_INFO = (3, 9)
 class WsgiDAVApp:
     def __init__(self, config):
         self.config = copy.deepcopy(DEFAULT_CONFIG)
+
         util.deep_update(self.config, config)
+
         config = self.config
 
         if config["logging"].get("enable") is not False:
             util.init_logging(config)
+
         self.logger = _logger
 
         # Evaluate configuration and set defaults
         expand = {"${application}": self}
-
         errors = []
 
         mandatory_fields = ("provider_mapping",)
+
         for field in mandatory_fields:
             if field not in config:
                 errors.append(f"Missing required option {field!r}.")
@@ -144,14 +148,13 @@ class WsgiDAVApp:
             raise ValueError("Invalid configuration:\n  - " + "\n  - ".join(errors))
 
         self.verbose: int = config.get("verbose", 3)
-
         hotfixes: dict = util.get_dict_value(config, "hotfixes", as_dict=True)
-
         self.re_encode_path_info: bool = hotfixes.get("re_encode_path_info", True)
+
         if type(self.re_encode_path_info) is not bool:
             raise ValueError("re_encode_path_info must be bool (or omitted)")
-        self.unquote_path_info: bool = hotfixes.get("unquote_path_info", False)
 
+        self.unquote_path_info: bool = hotfixes.get("unquote_path_info", False)
         lock_storage = config.get("lock_storage")
 
         if lock_storage is True:
@@ -170,6 +173,7 @@ class WsgiDAVApp:
             self.lock_manager = LockManager(lock_storage)
 
         prop_manager = config.get("property_manager")
+
         if prop_manager is True:
             prop_manager = PropertyManager()
         elif isinstance(prop_manager, (str, dict)):
@@ -185,6 +189,7 @@ class WsgiDAVApp:
 
         # If mount path is configured, it must start with "/" (but no trailing slash)
         mount_path = config.get("mount_path")
+
         if mount_path:
             if not mount_path.startswith("/") or mount_path.endswith("/"):
                 raise ValueError(
@@ -192,8 +197,8 @@ class WsgiDAVApp:
                 )
         else:
             mount_path = ""
-        self.mount_path = mount_path
 
+        self.mount_path = mount_path
         auth_conf = util.get_dict_value(config, "http_authenticator", as_dict=True)
 
         # Instantiate DAV resource provider objects for every share.
@@ -206,47 +211,49 @@ class WsgiDAVApp:
         #     <share_path>: <DAVProvider Instance>
 
         provider_mapping = self.config["provider_mapping"]
-
         self.provider_map = {}
         self.sorted_share_list = []
+
         for share, provider in provider_mapping.items():
             self.add_provider(share, provider)
 
         self.http_authenticator = None
         domain_controller = None
-
         # Define WSGI application stack
         middleware_stack = config.get("middleware_stack", [])
         mw_list = []
-
         # This is the 'outer' application, i.e. the WSGI application object that
         # is eventually called by the server.
-        self.application = self
+
+        self.application: Any = self
 
         # The `middleware_stack` is configured such that the first app in the
         # list should be called first. Since every app wraps its predecessor, we
         # iterate in reverse order:
-        for mw in reversed(middleware_stack):
+        for middleware in reversed(middleware_stack):
             # The middleware stack configuration may contain plain strings, dicts,
             # classes, or objects
-            app = None
-            if util.is_basestring(mw):
+            app: BaseMiddleware | None = None
+
+            if util.is_basestring(middleware):
                 # If a plain string is passed, try to import it, assuming
                 # `BaseMiddleware` signature
-                app_class = util.dynamic_import_class(mw)
+                app_class = util.dynamic_import_class(middleware)
                 app = app_class(self, self.application, config)
-            elif type(mw) is dict:
+            elif type(middleware) is dict:
                 # If a dict with one entry is passed, expect {class: ..., kwargs: ...}
                 expand = {"${application}": self.application}
-                app = util.dynamic_instantiate_class_from_opts(mw, expand=expand)
-            elif inspect.isclass(mw):
+                app = util.dynamic_instantiate_class_from_opts(
+                    middleware, expand=expand
+                )  # type: ignore
+            elif inspect.isclass(middleware):
                 # If a class is passed, assume BaseMiddleware (or compatible)
                 # TODO: remove this assert with 3.0
-                assert issubclass(mw, BaseMiddleware)
-                app = mw(self, self.application, config)
+                assert issubclass(middleware, BaseMiddleware)
+                app = middleware(self, self.application, config)
             else:
                 # Otherwise assume an initialized middleware instance
-                app = mw
+                app = middleware
 
             # Remember
             if isinstance(app, HTTPAuthenticator):
@@ -261,7 +268,7 @@ class WsgiDAVApp:
                     mw_list.append(app)
                     self.application = app
             else:
-                _logger.error(f"Could not add middleware {mw}.")
+                _logger.error(f"Could not add middleware {middleware}.")
 
         _logger.info(
             f"WsgiDAV/{__version__} Python/{util.PYTHON_VERSION} {platform.platform(aliased=True)}"
@@ -307,6 +314,7 @@ class WsgiDAVApp:
         """Add a provider to the provider_map routing table."""
         # Make sure share starts with, or is '/'
         share = "/" + share.strip("/")
+
         assert share not in self.provider_map
 
         fs_opts = self.config.get("fs_dav_provider") or {}
@@ -351,6 +359,7 @@ class WsgiDAVApp:
             )
 
         provider.set_share_path(share)
+
         if self.mount_path:
             provider.set_mount_path(self.mount_path)
 
@@ -378,6 +387,7 @@ class WsgiDAVApp:
         # Find DAV provider that matches the share
         share = None
         lower_path = path.lower()
+
         for r in self.sorted_share_list:
             # @@: Case sensitivity should be an option of some sort here;
             # os.path.normpath might give the preferred case for a filename.
@@ -443,6 +453,113 @@ class WsgiDAVApp:
         # PATH_INFO starts with '/'
         assert path == "" or path.startswith("/")
 
-        server = RequestServer(provider)
+        start_time = time.time()
 
-        await server(scope, receive, send)
+        async def _start_response_wrapper(status, response_headers, exc_info=None):
+            # Postprocess response headers
+            headerDict = {}
+            print(status)
+            for header, value in response_headers:
+                if header.lower() in headerDict:
+                    _logger.error(f"Duplicate header in response: {header}")
+                headerDict[header.lower()] = value
+
+            # Check if we should close the connection after this request.
+            # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+            forceCloseConnection = False
+            currentContentLength = headerDict.get("content-length")
+            statusCode = int(status.split(" ", 1)[0])
+            contentLengthRequired = (
+                scope.method != "HEAD"
+                and statusCode >= 200
+                and statusCode not in (204, 304)
+            )
+            # _logger.info(environ["REQUEST_METHOD"], statusCode, contentLengthRequired)
+            if contentLengthRequired and currentContentLength in (None, ""):
+                # A typical case: a GET request on a virtual resource, for which
+                # the provider doesn't know the length
+                _logger.error(
+                    f"Missing required Content-Length header in {statusCode}-response: closing connection"
+                )
+                forceCloseConnection = True
+            elif type(currentContentLength) is not str:
+                _logger.error(
+                    "Invalid Content-Length header in response ({!r}): closing connection".format(
+                        headerDict.get("content-length")
+                    )
+                )
+                forceCloseConnection = True
+
+            # HOTFIX for Vista and Windows 7 (GC issue 13, issue 23)
+            # It seems that we must read *all* of the request body, otherwise
+            # clients may miss the response.
+            # For example Vista MiniRedir didn't understand a 401 response,
+            # when trying an anonymous PUT of big files. As a consequence, it
+            # doesn't retry with credentials and the file copy fails.
+            # (XP is fine however).
+            util.read_and_discard_input(scope)
+
+            # Make sure the socket is not reused, unless we are 100% sure all
+            # current input was consumed
+            if util.get_content_length(scope) != 0 and not scope.asgidav.all_input_read:
+                _logger.warning(
+                    "Input stream not completely consumed: closing connection."
+                )
+                forceCloseConnection = True
+
+            if forceCloseConnection and headerDict.get("connection") != "close":
+                _logger.warning("Adding 'Connection: close' header.")
+                response_headers.append(("Connection", "close"))
+
+            # Log request
+            if self.verbose >= 3:
+                userInfo = scope.asgidav.auth.user_name
+                if not userInfo:
+                    userInfo = "(anonymous)"
+                extra = []
+                if scope.HTTP_DESTINATION:
+                    extra.append(f'dest="{scope.HTTP_DESTINATION}"')
+                if scope.CONTENT_LENGTH != "":
+                    extra.append(f"length={scope.CONTENT_LENGTH}")
+                if scope.HTTP_DEPTH:
+                    extra.append(f"depth={scope.HTTP_DEPTH}")
+                if scope.HTTP_RANGE:
+                    extra.append(f"range={scope.HTTP_RANGE}")
+                if scope.HTTP_OVERWRITE:
+                    extra.append(f"overwrite={scope.HTTP_OVERWRITE}")
+                if self.verbose >= 3 and scope.HTTP_EXPECT:
+                    extra.append(f'expect="{scope.HTTP_EXPECT}"')
+                if self.verbose >= 4 and scope.HTTP_CONNECTION:
+                    extra.append(f'connection="{scope.HTTP_CONNECTION}"')
+                if self.verbose >= 4 and scope.HTTP_USER_AGENT:
+                    extra.append(f'agent="{scope.HTTP_USER_AGENT}"')
+                if self.verbose >= 4 and scope.HTTP_TRANSFER_ENCODING:
+                    extra.append(f"transfer-enc={scope.HTTP_TRANSFER_ENCODING}")
+
+                if self.verbose >= 3:
+                    extra.append(f"elap={time.time() - start_time:.3f}sec")
+                extra = ", ".join(extra)
+
+                # This is the CherryPy format:
+                #   127.0.0.1 - - [08/Jul/2009:17:25:23] "GET /loginPrompt?redirect=/renderActionList%3Frelation%3Dpersonal%26key%3D%26filter%3DprivateSchedule&reason=0 HTTP/1.1" 200 1944 "http://127.0.0.1:8002/command?id=CMD_Schedule" "Mozilla/5.0 (Windows; U; Windows NT 6.0; de; rv:1.9.1) Gecko/20090624 Firefox/3.5"  # noqa
+                _logger.info(
+                    '{addr} - {user} - [{time}] "{method} {path}" {extra} -> {status}'.format(
+                        addr=scope.client,
+                        user=userInfo,
+                        time=util.get_log_time(),
+                        method=scope.method,
+                        path=util.safe_re_encode(
+                            scope.path,
+                            sys.stdout.encoding if sys.stdout.encoding else "utf-8",
+                        ),
+                        extra=extra,
+                        status=status,
+                        # response_headers.get(""), # response Content-Length
+                        # referer
+                    )
+                )
+
+                await util.send_start_response(send, 204, response_headers)
+                await util.send_body_response(send, b"")
+
+        await self.application(scope, receive, send)

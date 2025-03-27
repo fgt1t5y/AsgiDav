@@ -24,14 +24,14 @@ class BaseMiddleware(ABC):
         AsgiDav.mw.request_resolver.RequestResolver
     """
 
-    def __init__(self, wsgidav_app, next_app, config):
-        self.wsgidav_app = wsgidav_app
+    def __init__(self, app, next_app, config):
+        self.wsgidav_app = app
         self.next_app = next_app
         self.config = config
         self.verbose = config.get("verbose", 3)
 
     @abstractmethod
-    def __call__(self, scope, send):
+    def __call__(self, scope, receive, send):
         raise NotImplementedError
 
     def __repr__(self):

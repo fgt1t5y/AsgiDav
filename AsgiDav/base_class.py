@@ -209,6 +209,8 @@ class HTTPScope:
     HTTP_ORIGIN: str | None
     HTTP_ACCESS_CONTROL_REQUEST_METHOD: str | None
     HTTP_ACCESS_CONTROL_REQUEST_HEADERS: tuple[str, int] | None | None
+    HTTP_CONNECTION: str | None
+    HTTP_TRANSFER_ENCODING: str | None
     SERVER_NAME: str
     SERVER_PORT: str
 
@@ -257,6 +259,8 @@ class HTTPScope:
         self.HTTP_ACCESS_CONTROL_REQUEST_HEADERS = self.headers.get(
             "access-control-request-headers"
         )
+        self.HTTP_CONNECTION = self.headers.get("connection")
+        self.HTTP_TRANSFER_ENCODING = self.headers.get("transfer-encoding")
 
         self.asgidav = AsgiDavContext()
 

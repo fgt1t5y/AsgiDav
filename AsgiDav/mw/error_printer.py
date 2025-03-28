@@ -64,8 +64,6 @@ class ErrorPrinter(BaseMiddleware):
                 # traceback.print_exc(10, environ.get("wsgi.errors") or sys.stdout)
                 _logger.error(f"e.src_exception:\n{e.src_exception}")
             elif e.value in (HTTP_NOT_MODIFIED, HTTP_NO_CONTENT):
-                # _logger.warning("Forcing empty error response for {}".format(e.value))
-                # See paste.lint: these code don't have content
                 await util.send_start_response(
                     send,
                     status,

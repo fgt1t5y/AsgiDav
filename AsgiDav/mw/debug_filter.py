@@ -55,6 +55,7 @@ import sys
 import threading
 
 from AsgiDav import util
+from AsgiDav.base_class import HTTPScope
 from AsgiDav.mw.base_mw import BaseMiddleware
 from AsgiDav.util import safe_re_encode
 
@@ -79,12 +80,12 @@ class WsgiDavDebugFilter(BaseMiddleware):
             # "locks: 15",
         ]
 
-    def __call__(self, environ, start_response):
+    def __call__(self, scope: HTTPScope, receive, send):
         """ """
         # srvcfg = environ["wsgidav.config"]
         verbose = self._config.get("verbose", 3)
 
-        method = environ["REQUEST_METHOD"]
+        method = scope.method
 
         debugBreak = False
         dumpRequest = False
@@ -94,8 +95,8 @@ class WsgiDavDebugFilter(BaseMiddleware):
             dumpRequest = dumpResponse = True
 
         # Process URL commands
-        if "dump_storage" in environ.get("QUERY_STRING", ""):
-            dav = environ.get("wsgidav.provider")
+        if "dump_storage" in scope.query_string.decode():
+            dav = scope.asgidav.provider
             if dav.lock_manager:
                 dav.lock_manager._dump()
             if dav.prop_manager:
@@ -130,11 +131,11 @@ class WsgiDavDebugFilter(BaseMiddleware):
             dumpResponse = True
 
         # Set debug options to environment
-        environ["wsgidav.verbose"] = verbose
+        scope.asgidav.verbose = verbose
         # environ["wsgidav.debug_methods"] = self.debug_methods
-        environ["wsgidav.debug_break"] = debugBreak
-        environ["wsgidav.dump_request_body"] = dumpRequest
-        environ["wsgidav.dump_response_body"] = dumpResponse
+        scope.asgidav.debug_break = debugBreak
+        scope.asgidav.dump_request_body = dumpRequest
+        scope.asgidav.dump_response_body = dumpResponse
 
         # Dump request headers
         if dumpRequest:
@@ -152,9 +153,9 @@ class WsgiDavDebugFilter(BaseMiddleware):
         # Intercept start_response
         #
         sub_app_start_response = util.SubAppStartResponse()
-
         nbytes = 0
         first_yield = True
+        
         app_iter = self.next_app(environ, sub_app_start_response)
 
         for v in app_iter:

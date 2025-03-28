@@ -102,7 +102,6 @@ class SimpleDomainController(BaseDomainController):
 
     def get_domain_realm(self, path_info, scope):
         """Resolve a relative url to the appropriate realm name."""
-        realm = self._calc_realm_from_path_provider(path_info, scope)
         return realm
 
     def require_authentication(self, realm, scope):

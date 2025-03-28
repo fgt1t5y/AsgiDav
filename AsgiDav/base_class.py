@@ -138,8 +138,10 @@ class ASGIVersions(TypedDict):
 
 
 class AsgiDavAuth:
+    realm: str
     user_name: str | None
-    roles: list[str]
+    roles: list[str] | None
+    permissions: list[str] | None
 
 
 class AsgiDavConditions:
@@ -158,7 +160,8 @@ class AsgiDavContext:
     conditions: AsgiDavConditions
     ifLockTokenList: list[Any]
     debug_break: bool | None
-    dump_response_body: str | None
+    dump_request_body: str | bool | None
+    dump_response_body: str | bool | None
     all_input_read: int | None
 
     def __init__(self) -> None:
@@ -180,7 +183,7 @@ class HTTPScope:
     raw_path: bytes
     query_string: bytes
     root_path: str
-    headers: dict[str, str]
+    headers: dict[str, Any]
     client: tuple[str, int] | None
     server: tuple[str, int | None] | None
     url_scheme: str
@@ -208,9 +211,10 @@ class HTTPScope:
     HTTP_USER_AGENT: str | None
     HTTP_ORIGIN: str | None
     HTTP_ACCESS_CONTROL_REQUEST_METHOD: str | None
-    HTTP_ACCESS_CONTROL_REQUEST_HEADERS: tuple[str, int] | None | None
+    HTTP_ACCESS_CONTROL_REQUEST_HEADERS: tuple[str, int] | None
     HTTP_CONNECTION: str | None
     HTTP_TRANSFER_ENCODING: str | None
+    HTTP_AUTHORIZATION: str | None
     SERVER_NAME: str
     SERVER_PORT: str
 
@@ -261,6 +265,7 @@ class HTTPScope:
         )
         self.HTTP_CONNECTION = self.headers.get("connection")
         self.HTTP_TRANSFER_ENCODING = self.headers.get("transfer-encoding")
+        self.HTTP_AUTHORIZATION = self.headers.get("authorization")
 
         self.asgidav = AsgiDavContext()
 

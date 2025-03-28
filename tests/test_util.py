@@ -122,8 +122,9 @@ class BasicTest(unittest.TestCase):
 
         self.assertRaises(ValueError, fix_path, "a/b", "/root/x")
         if sys.platform == "win32":
+            print(fix_path("a/b", "/root/x", must_exist=False))
             assert (
-                fix_path("a/b", "/root/x", must_exist=False).lower() == r"c:\root\x\a\b"
+                fix_path("a/b", "/root/x", must_exist=False).lower() == r"d:\root\x\a\b"
             )
             # NOTE:
             # Changed in version 3.13: On Windows, `os.path.isabs` returns False

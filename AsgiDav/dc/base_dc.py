@@ -63,7 +63,7 @@ class BaseDomainController(ABC):
     def __str__(self):
         return f"{self.__class__.__name__}()"
 
-    def _calc_realm_from_path_provider(self, path_info, scope: HTTPScope):
+    def _calc_realm_from_path_provider(self, path_info, scope: HTTPScope) -> str | None:
         """Internal helper for derived classes to implement get_domain_realm()."""
         if scope:
             # Called while in a request:

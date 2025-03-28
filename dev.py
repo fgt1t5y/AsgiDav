@@ -1,6 +1,5 @@
 from AsgiDav.app import WsgiDAVApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
-from AsgiDav.mw.error_printer import ErrorPrinter
 from AsgiDav.mw.request_resolver import RequestResolver
 
 root_path = "D:/data"

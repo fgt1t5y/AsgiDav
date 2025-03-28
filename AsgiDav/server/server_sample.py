@@ -2,59 +2,38 @@
 # Original PyFileServer (c) 2005 Ho Chun Wei.
 # Licensed under the MIT license: http://www.opensource.org/licenses/mit-license.php
 """
-Simple example how to a run WsgiDAV in a 3rd-party WSGI server.
+Simple example how to a run AsgiDav in a 3rd-party ASGI server.
 """
 
-from cheroot import wsgi
+import uvicorn
 
-from AsgiDav import util
 from AsgiDav.app import WsgiDAVApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
+from AsgiDav.mw.error_printer import ErrorPrinter
+from AsgiDav.mw.request_resolver import RequestResolver
 
-
-def main():
+if __name__ == "__main__":
     root_path = "."
     provider = FilesystemProvider(root_path, readonly=False, fs_opts={})
 
     config = {
-        "host": "127.0.0.1",
-        "port": 8080,
         "provider_mapping": {"/": provider},
         "http_authenticator": {
             "domain_controller": None  # None: dc.simple_dc.SimpleDomainController(user_mapping)
         },
         "simple_dc": {"user_mapping": {"*": True}},  # anonymous access
-        "verbose": 4,
+        "verbose": 3,
         "logging": {
             "enable": True,
             "enable_loggers": [],
         },
         "property_manager": True,  # True: use property_manager.PropertyManager
         "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
+        "middleware_stack": [ErrorPrinter, RequestResolver],
+        "cors": {"allow_origin": "*"},
     }
+
     app = WsgiDAVApp(config)
-
-    # For an example, use cheroot:
-    version = (
-        f"{util.public_wsgidav_info} {wsgi.Server.version} {util.public_python_info}"
-    )
-
-    server = wsgi.Server(
-        bind_addr=(config["host"], config["port"]),
-        wsgi_app=app,
-        server_name=version,
-        # "numthreads": 50,
-    )
-
-    app.logger.info(f"Running {version}")
-    app.logger.info(f"Serving on http://{config['host']}:{config['port']}/ ...")
-    try:
-        server.start()
-    except KeyboardInterrupt:
-        app.logger.info("Received Ctrl-C: stopping...")
-    finally:
-        server.stop()
-
-
-if __name__ == "__main__":
-    main()
+    config = uvicorn.Config(app=app, host="127.0.0.1", port=8080)
+    server = uvicorn.Server(config=config)
+    server.run()

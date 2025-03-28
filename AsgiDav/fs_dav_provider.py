@@ -130,7 +130,7 @@ class FileResource(DAVNonCollection):
                     self.get_ref_url(),
                     destRes.get_ref_url(),
                     with_children=False,
-                    environ=self.scope,
+                    scope=self.scope,
                 )
             else:
                 propMan.copy_properties(

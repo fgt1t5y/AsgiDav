@@ -12,6 +12,8 @@ from typing import (
 from urllib.parse import unquote
 
 from AsgiDav import util
+from AsgiDav.lock_man.lock_manager import LockManager
+from AsgiDav.prop_man.property_manager import PropertyManager
 
 
 class DAVProvider(ABC):
@@ -23,9 +25,9 @@ class DAVProvider(ABC):
     def __init__(self):
         self.mount_path = ""
         self.share_path: str | None = None
-        self.lock_manager = None
-        self.prop_manager = None
-        self.verbose = 3
+        self.lock_manager: LockManager | None = None
+        self.prop_manager: PropertyManager | None = None
+        self.verbose: int = 3
 
         self._count_get_resource_inst = 0
         self._count_get_resource_inst_init = 0
@@ -83,7 +85,7 @@ class DAVProvider(ABC):
         return "/" + unquote(util.removeprefix(ref_url, self.share_path)).lstrip("/")  # type: ignore
 
     @abstractmethod
-    def get_resource_inst(self, path: str, scope):
+    def get_resource_inst(self, path: str, scope: "HTTPScope"):
         """Return a _DAVResource object for path.
 
         Should be called only once per request and resource::
@@ -111,16 +113,17 @@ class DAVProvider(ABC):
         """
         return self.get_resource_inst(path, scope) is not None
 
-    def is_collection(self, path: str, environ: dict):
+    def is_collection(self, path: str, scope: "HTTPScope"):
         """Return True, if path maps to an existing collection resource.
 
         This method should only be used, if no other information is queried
         for <path>. Otherwise a _DAVResource should be created first.
         """
-        res = self.get_resource_inst(path, environ)
+        res = self.get_resource_inst(path, scope)
+
         return res and res.is_collection
 
-    def custom_request_handler(self, environ, start_response, default_handler):
+    def custom_request_handler(self, scope, receive, send, default_handler):
         """Optionally implement custom request handling.
 
         requestmethod = environ["REQUEST_METHOD"]
@@ -129,7 +132,7 @@ class DAVProvider(ABC):
         - handle the request completely
         - do additional processing and call default_handler(environ, start_response)
         """
-        return default_handler(environ, start_response)
+        return default_handler(scope, receive, send)
 
 
 class ASGIVersions(TypedDict):
@@ -217,6 +220,7 @@ class HTTPScope:
     HTTP_AUTHORIZATION: str | None
     SERVER_NAME: str
     SERVER_PORT: str
+    REQUEST_URI: str | None
 
     asgidav: AsgiDavContext
 
@@ -254,6 +258,7 @@ class HTTPScope:
         self.HTTP_RANGE = self.headers.get("range")
         self.SERVER_NAME = self.server[0]  # type: ignore
         self.SERVER_PORT = self.server[1]  # type: ignore
+        self.REQUEST_URI = self.headers.get("request-uri")
         self.HTTP_IF_RANGE = self.headers.get("if-range")
         self.HTTP_USER_AGENT = self.headers.get("user-agent")
         self.HTTP_ORIGIN = self.headers.get("origin")

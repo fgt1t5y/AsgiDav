@@ -77,18 +77,14 @@ class WsgiDavDirBrowser(BaseMiddleware):
     def is_disabled(self):
         return self.dir_config.get("enable") is False
 
-    def __call__(self, scope: HTTPScope, receive, send):
+    async def __call__(self, scope: HTTPScope, receive, send):
         path = scope.path
 
         dav_res = None
         if scope.asgidav.provider:
             dav_res = scope.asgidav.provider.get_resource_inst(path, scope)
 
-        if (
-            scope.method in ("GET", "HEAD")
-            and dav_res
-            and dav_res.is_collection
-        ):
+        if scope.method in ("GET", "HEAD") and dav_res and dav_res.is_collection:
             if util.get_content_length(scope) != 0:
                 self._fail(
                     HTTP_MEDIATYPE_NOT_SUPPORTED,
@@ -96,19 +92,21 @@ class WsgiDavDirBrowser(BaseMiddleware):
                 )
 
             if scope.method == "HEAD":
-                return util.send_status_response(
-                    scope, send, HTTP_OK, is_head=True
-                )
+                return util.send_status_response(scope, send, HTTP_OK, is_head=True)
 
             # Support DAV mount (http://www.ietf.org/rfc/rfc4709.txt)
-            if self.dir_config.get("davmount") and "davmount" in scope.query_string.decode():
+            if (
+                self.dir_config.get("davmount")
+                and "davmount" in scope.query_string.decode()
+            ):
                 collectionUrl = util.make_complete_url(scope)
                 collectionUrl = collectionUrl.split("?", 1)[0]
                 res = util.to_bytes(DAVMOUNT_TEMPLATE.format(collectionUrl))
                 # TODO: support <dm:open>%s</dm:open>
 
-                start_response(
-                    "200 OK",
+                await util.send_start_response(
+                    send,
+                    200,
                     [
                         ("Content-Type", "application/davmount+xml"),
                         ("Content-Length", str(len(res))),
@@ -116,10 +114,12 @@ class WsgiDavDirBrowser(BaseMiddleware):
                         ("Date", util.get_rfc1123_time()),
                     ],
                 )
-                return [res]
+                await util.send_body_response(send, res)
+
+                return
 
             directory_slash = self.dir_config.get("directory_slash")
-            requrest_uri = environ.get("REQUEST_URI")
+            requrest_uri = scope.REQUEST_URI
             if directory_slash and requrest_uri and not requrest_uri.endswith("/"):
                 _logger.info(f"Redirect {requrest_uri} to {requrest_uri}/")
                 return util.send_redirect_response(
@@ -130,8 +130,10 @@ class WsgiDavDirBrowser(BaseMiddleware):
 
             res = self.template.render(**context)
             res = util.to_bytes(res)
-            start_response(
-                "200 OK",
+
+            await util.send_start_response(
+                send,
+                200,
                 [
                     ("Content-Type", "text/html; charset=utf-8"),
                     ("Content-Length", str(len(res))),
@@ -139,7 +141,7 @@ class WsgiDavDirBrowser(BaseMiddleware):
                     ("Date", util.get_rfc1123_time()),
                 ],
             )
-            return [res]
+            await util.send_body_response(send, res)
 
         return self.next_app(scope, receive, send)
 
@@ -148,7 +150,7 @@ class WsgiDavDirBrowser(BaseMiddleware):
         e = DAVError(value, context_info, src_exception, err_condition)
         if self.verbose >= 4:
             _logger.warning(
-                f"Raising DAVError {safe_re_encode(e.get_user_info(), sys.stdout.encoding)}"
+                f"Raising DAVError {util.safe_re_encode(e.get_user_info(), sys.stdout.encoding)}"
             )
         raise e
 
@@ -211,7 +213,7 @@ class WsgiDavDirBrowser(BaseMiddleware):
                 a_classes = []
 
                 # #268 Use relative paths to support reverse proxies:
-                rel_href = get_uri_name(href)
+                rel_href = util.get_uri_name(href)
                 if res.is_collection:
                     tr_classes.append("directory")
                     rel_href = f"./{rel_href}/"  # 274

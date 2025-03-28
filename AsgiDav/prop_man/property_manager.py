@@ -20,6 +20,7 @@ The properties dictionaray is built like::
 
 import os
 import shelve
+import logging
 
 from AsgiDav import util
 from AsgiDav.rw_lock import ReadWriteLock
@@ -38,7 +39,7 @@ from AsgiDav.rw_lock import ReadWriteLock
 
 __docformat__ = "reStructuredText"
 
-_logger = util.get_module_logger("wsgidav.prop_man")
+_logger = logging.getLogger("PropertyManager")
 
 
 # ========================================================================
@@ -117,7 +118,7 @@ class PropertyManager:
         except Exception as e:
             _logger.error(f"PropertyManager._dump()  ERROR: {e}")
 
-    def get_properties(self, norm_url, environ=None):
+    def get_properties(self, norm_url, scope=None):
         _logger.debug(f"get_properties({norm_url})")
         self._lock.acquire_read()
         try:
@@ -131,7 +132,7 @@ class PropertyManager:
         finally:
             self._lock.release()
 
-    def get_property(self, norm_url, name, environ=None):
+    def get_property(self, norm_url, name, scope=None):
         _logger.debug(f"get_property({norm_url}, {name})")
         self._lock.acquire_read()
         try:
@@ -151,7 +152,7 @@ class PropertyManager:
             self._lock.release()
 
     def write_property(
-        self, norm_url, name, property_value, dry_run=False, environ=None
+        self, norm_url, name, property_value, dry_run=False, scope=None
     ):
         assert norm_url and norm_url.startswith("/")
         assert name  # and name.startswith("{")
@@ -180,7 +181,7 @@ class PropertyManager:
         finally:
             self._lock.release()
 
-    def remove_property(self, norm_url, name, dry_run=False, environ=None):
+    def remove_property(self, norm_url, name, dry_run=False, scope=None):
         """
         Specifying the removal of a property that does not exist is NOT an error.
         """
@@ -205,7 +206,7 @@ class PropertyManager:
         finally:
             self._lock.release()
 
-    def remove_properties(self, norm_url, environ=None):
+    def remove_properties(self, norm_url, scope=None):
         _logger.debug(f"remove_properties({norm_url})")
         self._lock.acquire_write()
         try:
@@ -217,7 +218,7 @@ class PropertyManager:
         finally:
             self._lock.release()
 
-    def copy_properties(self, src_url, dest_url, environ=None):
+    def copy_properties(self, src_url, dest_url, scope=None):
         _logger.debug(f"copy_properties({src_url}, {dest_url})")
         self._lock.acquire_write()
         try:
@@ -233,7 +234,7 @@ class PropertyManager:
         finally:
             self._lock.release()
 
-    def move_properties(self, src_url, dest_url, with_children, environ=None):
+    def move_properties(self, src_url, dest_url, with_children, scope=None):
         _logger.debug(f"move_properties({src_url}, {dest_url}, {with_children})")
         self._lock.acquire_write()
         try:

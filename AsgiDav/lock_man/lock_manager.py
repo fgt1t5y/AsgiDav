@@ -36,6 +36,7 @@ The lock data model is a dictionary with these fields:
 
 """
 
+import logging
 import random
 import time
 from pprint import pformat
@@ -51,7 +52,7 @@ from AsgiDav.rw_lock import ReadWriteLock
 
 __docformat__ = "reStructuredText"
 
-_logger = util.get_module_logger("wsgidav.lock_man")
+_logger = logging.getLogger("LockManager")
 
 
 # ========================================================================

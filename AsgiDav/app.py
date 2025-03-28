@@ -64,7 +64,6 @@ from AsgiDav.lock_man.lock_storage import LockStorageDict
 from AsgiDav.mw.base_mw import BaseMiddleware
 from AsgiDav.mw.http_authenticator import HTTPAuthenticator
 from AsgiDav.prop_man.property_manager import PropertyManager
-from AsgiDav.request_server import RequestServer
 
 __docformat__ = "reStructuredText"
 

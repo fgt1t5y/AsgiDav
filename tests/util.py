@@ -16,9 +16,9 @@ import sys
 import time
 from tempfile import gettempdir
 
-from wsgidav import util
-from wsgidav.fs_dav_provider import FilesystemProvider
-from wsgidav.wsgidav_app import WsgiDAVApp
+from AsgiDav import util
+from AsgiDav.app import WsgiDAVApp
+from AsgiDav.fs_dav_provider import FilesystemProvider
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
 

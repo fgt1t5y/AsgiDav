@@ -17,11 +17,11 @@ import unittest
 from urllib.parse import quote
 
 import pytest
+from AsgiDav import util
+from AsgiDav.app import WsgiDAVApp
+from AsgiDav.fs_dav_provider import FilesystemProvider
 
 from tests.util import create_test_folder
-from wsgidav import util
-from wsgidav.fs_dav_provider import FilesystemProvider
-from wsgidav.wsgidav_app import WsgiDAVApp
 
 try:
     import webtest

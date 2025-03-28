@@ -64,13 +64,13 @@ from io import StringIO
 
 import MySQLdb  # @UnresolvedImport
 
-from wsgidav import util
-from wsgidav.dav_error import (
+from AsgiDav import util
+from AsgiDav.dav_error import (
     HTTP_FORBIDDEN,
     DAVError,
     PRECONDITION_CODE_ProtectedProperty,
 )
-from wsgidav.dav_provider import DAVProvider, _DAVResource
+from AsgiDav.dav_provider import DAVProvider, _DAVResource
 
 __docformat__ = "reStructuredText"
 

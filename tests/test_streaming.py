@@ -12,11 +12,11 @@ import unittest
 from tempfile import gettempdir
 
 import requests
+from AsgiDav import util
+from AsgiDav.dav_provider import DAVNonCollection, DAVProvider
+from AsgiDav.stream_tools import FileLikeQueue
 
 from tests.util import Timing, WsgiDavTestServer, write_test_file
-from wsgidav import util
-from wsgidav.dav_provider import DAVNonCollection, DAVProvider
-from wsgidav.stream_tools import FileLikeQueue
 
 # ----------------------------------------------------------------------------
 # Dummy DAVProvider implementation

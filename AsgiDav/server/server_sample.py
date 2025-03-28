@@ -7,9 +7,9 @@ Simple example how to a run WsgiDAV in a 3rd-party WSGI server.
 
 from cheroot import wsgi
 
-from wsgidav import util
-from wsgidav.fs_dav_provider import FilesystemProvider
-from wsgidav.wsgidav_app import WsgiDAVApp
+from AsgiDav import util
+from AsgiDav.app import WsgiDAVApp
+from AsgiDav.fs_dav_provider import FilesystemProvider
 
 
 def main():

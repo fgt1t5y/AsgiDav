@@ -1212,6 +1212,21 @@ async def send_status_response(scope, send, e, *, add_headers=None, is_head=Fals
     )
 
 
+async def send_redirect_response(scope, receive, send, *, location):
+    """Start a WSGI response for a DAVError or status code."""
+
+    await send_start_response(
+        send,
+        301,
+        [
+            ("Content-Length", "0"),
+            ("Date", get_rfc1123_time()),
+            ("Location", location),
+        ],
+    )
+    await send_body_response(send, b"")
+
+
 async def send_multi_status_response(scope: HTTPScope, send, multistatus_elem):
     # If logging of the body is desired, then this is the place to do it
     # pretty:

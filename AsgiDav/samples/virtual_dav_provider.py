@@ -100,15 +100,14 @@ import stat
 from io import BytesIO
 from urllib.parse import quote
 
-from wsgidav import util
-from wsgidav.dav_error import (
+from AsgiDav import util
+from AsgiDav.dav_error import (
     HTTP_FORBIDDEN,
     HTTP_INTERNAL_ERROR,
     DAVError,
     PRECONDITION_CODE_ProtectedProperty,
 )
-from wsgidav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
-from wsgidav.util import join_uri
+from AsgiDav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
 
 __docformat__ = "reStructuredText en"
 
@@ -199,7 +198,7 @@ class RootCollection(DAVCollection):
     def get_member(self, name):
         # Handle visible categories and also /by_key/...
         if name in self._validMemberNames:
-            return CategoryTypeCollection(join_uri(self.path, name), self.environ)
+            return CategoryTypeCollection(util.join_uri(self.path, name), self.environ)
         return None
 
 
@@ -233,10 +232,10 @@ class CategoryTypeCollection(DAVCollection):
         if self.name == "by_key":
             data = _get_res_by_key(name)
             if data:
-                return VirtualResource(join_uri(self.path, name), self.environ, data)
+                return VirtualResource(util.join_uri(self.path, name), self.environ, data)
             else:
                 return None
-        return CategoryCollection(join_uri(self.path, name), self.environ, self.name)
+        return CategoryCollection(util.join_uri(self.path, name), self.environ, self.name)
 
 
 class CategoryCollection(DAVCollection):
@@ -259,7 +258,7 @@ class CategoryCollection(DAVCollection):
     def get_member(self, name):
         for data in _get_res_list_by_attr(self.catType, self.name):
             if data["title"] == name:
-                return VirtualResource(join_uri(self.path, name), self.environ, data)
+                return VirtualResource(util.join_uri(self.path, name), self.environ, data)
         return None
 
 
@@ -300,12 +299,12 @@ class VirtualResource(DAVCollection):
 
     def get_member(self, name):
         if name in self._artifactNames:
-            return VirtualArtifact(join_uri(self.path, name), self.environ, self.data)
+            return VirtualArtifact(util.join_uri(self.path, name), self.environ, self.data)
         for file_path in self.data["resPathList"]:
             fname = os.path.basename(file_path)
             if fname == name:
                 return VirtualResFile(
-                    join_uri(self.path, name), self.environ, self.data, file_path
+                    util.join_uri(self.path, name), self.environ, self.data, file_path
                 )
         return None
 
@@ -669,7 +668,7 @@ class VirtualResourceProvider(DAVProvider):
 #            # Accessing /<catType>/<cat>/<name>
 #            if artifactName in _artifactNames:
 #                # Accessing /<catType>/<cat>/<name>/.info.html, or similar
-#                return VirtualArtifact(self, util.join_uri(path, artifactName), environ,
+#                return VirtualArtifact(self, util.util.join_uri(path, artifactName), environ,
 #                                       res, artifactName)
 #            elif artifactName:
 #                # Accessing /<catType>/<cat>/<name>/<file-name>

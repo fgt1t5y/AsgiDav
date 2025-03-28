@@ -12,10 +12,10 @@ from urllib.parse import unquote
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from wsgidav import __version__, util
-from wsgidav.dav_error import HTTP_MEDIATYPE_NOT_SUPPORTED, HTTP_OK, DAVError
-from wsgidav.mw.base_mw import BaseMiddleware
-from wsgidav.util import get_uri_name, safe_re_encode, send_redirect_response
+from AsgiDav import __version__, util
+from AsgiDav.base_class import HTTPScope
+from AsgiDav.dav_error import HTTP_MEDIATYPE_NOT_SUPPORTED, HTTP_OK, DAVError
+from AsgiDav.mw.base_mw import BaseMiddleware
 
 __docformat__ = "reStructuredText"
 
@@ -45,8 +45,8 @@ OPEN_OFFICE_EXTENSIONS = {"odt", "odp", "odx"}
 class WsgiDavDirBrowser(BaseMiddleware):
     """WSGI middleware that handles GET requests on collections to display directories."""
 
-    def __init__(self, wsgidav_app, next_app, config):
-        super().__init__(wsgidav_app, next_app, config)
+    def __init__(self, app, next_app, config):
+        super().__init__(app, next_app, config)
 
         self.dir_config = util.get_dict_value(config, "dir_browser", as_dict=True)
 
@@ -63,7 +63,7 @@ class WsgiDavDirBrowser(BaseMiddleware):
             raise ValueError(f"Invalid dir_browser htdocs_path {self.htdocs_path!r}")
 
         # Add an additional read-only FS provider that serves the dir_browser assets
-        self.wsgidav_app.add_provider(ASSET_SHARE, self.htdocs_path, readonly=True)
+        self.app.add_provider(ASSET_SHARE, self.htdocs_path, readonly=True)
         # and make sure we have anonymous access there
         config.get("simple_dc", {}).get("user_mapping", {}).setdefault(
             ASSET_SHARE, True
@@ -77,34 +77,32 @@ class WsgiDavDirBrowser(BaseMiddleware):
     def is_disabled(self):
         return self.dir_config.get("enable") is False
 
-    def __call__(self, environ, start_response):
-        path = environ["PATH_INFO"]
+    def __call__(self, scope: HTTPScope, receive, send):
+        path = scope.path
 
         dav_res = None
-        if environ["wsgidav.provider"]:
-            dav_res = environ["wsgidav.provider"].get_resource_inst(path, environ)
+        if scope.asgidav.provider:
+            dav_res = scope.asgidav.provider.get_resource_inst(path, scope)
 
         if (
-            environ["REQUEST_METHOD"] in ("GET", "HEAD")
+            scope.method in ("GET", "HEAD")
             and dav_res
             and dav_res.is_collection
         ):
-            if util.get_content_length(environ) != 0:
+            if util.get_content_length(scope) != 0:
                 self._fail(
                     HTTP_MEDIATYPE_NOT_SUPPORTED,
                     "The server does not handle any body content.",
                 )
 
-            if environ["REQUEST_METHOD"] == "HEAD":
+            if scope.method == "HEAD":
                 return util.send_status_response(
-                    environ, start_response, HTTP_OK, is_head=True
+                    scope, send, HTTP_OK, is_head=True
                 )
 
             # Support DAV mount (http://www.ietf.org/rfc/rfc4709.txt)
-            if self.dir_config.get("davmount") and "davmount" in environ.get(
-                "QUERY_STRING", ""
-            ):
-                collectionUrl = util.make_complete_url(environ)
+            if self.dir_config.get("davmount") and "davmount" in scope.query_string.decode():
+                collectionUrl = util.make_complete_url(scope)
                 collectionUrl = collectionUrl.split("?", 1)[0]
                 res = util.to_bytes(DAVMOUNT_TEMPLATE.format(collectionUrl))
                 # TODO: support <dm:open>%s</dm:open>
@@ -124,11 +122,11 @@ class WsgiDavDirBrowser(BaseMiddleware):
             requrest_uri = environ.get("REQUEST_URI")
             if directory_slash and requrest_uri and not requrest_uri.endswith("/"):
                 _logger.info(f"Redirect {requrest_uri} to {requrest_uri}/")
-                return send_redirect_response(
-                    environ, start_response, location=requrest_uri + "/"
+                return util.send_redirect_response(
+                    scope, receive, send, location=requrest_uri + "/"
                 )
 
-            context = self._get_context(environ, dav_res)
+            context = self._get_context(scope, dav_res)
 
             res = self.template.render(**context)
             res = util.to_bytes(res)
@@ -143,7 +141,7 @@ class WsgiDavDirBrowser(BaseMiddleware):
             )
             return [res]
 
-        return self.next_app(environ, start_response)
+        return self.next_app(scope, receive, send)
 
     def _fail(self, value, context_info=None, src_exception=None, err_condition=None):
         """Wrapper to raise (and log) DAVError."""

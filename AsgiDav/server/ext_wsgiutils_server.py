@@ -67,7 +67,7 @@ from http import server as BaseHTTPServer
 from io import StringIO
 from urllib.parse import urlparse
 
-from wsgidav import util
+from AsgiDav import util
 
 _logger = util.get_module_logger(__name__)
 

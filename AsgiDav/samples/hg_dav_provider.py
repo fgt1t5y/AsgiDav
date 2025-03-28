@@ -77,10 +77,10 @@ import time
 from hashlib import md5
 from pprint import pprint
 
-from wsgidav import util
-from wsgidav.dav_error import HTTP_FORBIDDEN, DAVError
-from wsgidav.dav_provider import DAVProvider, _DAVResource
-from wsgidav.samples.dav_provider_tools import VirtualCollection
+from AsgiDav import util
+from AsgiDav.dav_error import HTTP_FORBIDDEN, DAVError
+from AsgiDav.dav_provider import DAVProvider, _DAVResource
+from AsgiDav.samples.dav_provider_tools import VirtualCollection
 
 try:
     import mercurial.ui

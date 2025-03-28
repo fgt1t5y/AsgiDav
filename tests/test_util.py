@@ -9,7 +9,7 @@ import sys
 import unittest
 from io import StringIO
 
-from wsgidav.util import (
+from AsgiDav.util import (
     BASE_LOGGER_NAME,
     check_tags,
     checked_etag,

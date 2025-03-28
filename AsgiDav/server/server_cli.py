@@ -44,11 +44,11 @@ from threading import Timer
 
 import yaml
 
-from wsgidav import __version__, util
-from wsgidav.default_conf import DEFAULT_CONFIG, DEFAULT_VERBOSE
-from wsgidav.fs_dav_provider import FilesystemProvider
-from wsgidav.wsgidav_app import WsgiDAVApp
-from wsgidav.xml_tools import use_lxml
+from AsgiDav import __version__, util
+from AsgiDav.app import WsgiDAVApp
+from AsgiDav.default_conf import DEFAULT_CONFIG, DEFAULT_VERBOSE
+from AsgiDav.fs_dav_provider import FilesystemProvider
+from AsgiDav.xml_tools import use_lxml
 
 try:
     # Try pyjson5 first because it's faster than json5

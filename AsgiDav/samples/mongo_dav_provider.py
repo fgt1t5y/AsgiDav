@@ -30,9 +30,8 @@ from pprint import pformat
 import pymongo
 from bson.objectid import ObjectId
 
-from wsgidav import util
-from wsgidav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
-from wsgidav.util import join_uri
+from AsgiDav import util
+from AsgiDav.dav_provider import DAVCollection, DAVNonCollection, DAVProvider
 
 __docformat__ = "reStructuredText"
 
@@ -53,7 +52,7 @@ class ConnectionCollection(DAVCollection):
         return [name.encode("utf8") for name in self.conn.database_names()]
 
     def get_member(self, name):
-        return DbCollection(join_uri(self.path, name), self.environ)
+        return DbCollection(util.join_uri(self.path, name), self.environ)
 
 
 class DbCollection(DAVCollection):
@@ -72,7 +71,7 @@ class DbCollection(DAVCollection):
 
     def get_member(self, name):
         coll = self.db[name]
-        return CollCollection(join_uri(self.path, name), self.environ, coll)
+        return CollCollection(util.join_uri(self.path, name), self.environ, coll)
 
 
 class CollCollection(DAVCollection):
@@ -94,7 +93,7 @@ class CollCollection(DAVCollection):
 
     def get_member(self, name):
         doc = self.coll.find_one(ObjectId(name))
-        return DocResource(join_uri(self.path, name), self.environ, doc)
+        return DocResource(util.join_uri(self.path, name), self.environ, doc)
 
 
 class DocResource(DAVNonCollection):

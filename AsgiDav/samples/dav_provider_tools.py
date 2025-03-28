@@ -7,8 +7,8 @@ Tools that make it easier to implement custom WsgiDAV providers.
 import os
 import stat
 
-from wsgidav import util
-from wsgidav.dav_provider import DAVCollection, DAVNonCollection
+from AsgiDav import util
+from AsgiDav.dav_provider import DAVCollection, DAVNonCollection
 
 __docformat__ = "reStructuredText en"
 

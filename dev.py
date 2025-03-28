@@ -21,7 +21,7 @@ config = {
     },
     "property_manager": True,  # True: use property_manager.PropertyManager
     "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
-    "middleware_stack": [ErrorPrinter, RequestResolver],
+    "middleware_stack": [RequestResolver],
     "cors": {"allow_origin": "*"},
 }
 

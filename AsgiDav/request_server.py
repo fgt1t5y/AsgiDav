@@ -50,7 +50,7 @@ DEFAULT_BLOCK_SIZE = 8192
 
 class RequestServer:
     def __init__(self, dav_provider):
-        self._davProvider = dav_provider
+        self._davProvider: DAVProvider = dav_provider
         self.allow_propfind_infinite = True
         self._verbose = 3
         self.block_size = DEFAULT_BLOCK_SIZE
@@ -368,7 +368,7 @@ class RequestServer:
         self._check_write_permission(res, "0", scope)
 
         # Parse request
-        requestEL = util.parse_xml_body(scope, receiv)
+        requestEL = await util.parse_xml_body(scope, receiv)
 
         if requestEL.tag != "{DAV:}propertyupdate":  # type: ignore
             self._fail(HTTP_BAD_REQUEST)
@@ -735,10 +735,10 @@ class RequestServer:
         )
 
     async def do_COPY(self, scope: HTTPScope, receive, send):
-        await self._copy_or_move(scope, send, receive, False)
+        await self._copy_or_move(scope, receive, send, False)
 
     async def do_MOVE(self, scope: HTTPScope, receive, send):
-        await self._copy_or_move(scope, send, receive, True)
+        await self._copy_or_move(scope, receive, send, True)
 
     async def _copy_or_move(self, scope: HTTPScope, receive, send, is_move: bool):
         """
@@ -767,7 +767,7 @@ class RequestServer:
         if src_res is None:
             self._fail(HTTP_NOT_FOUND, src_path)
 
-        if scope.HTTP_DESTINATION:
+        if not scope.HTTP_DESTINATION:
             self._fail(HTTP_BAD_REQUEST, "Missing required Destination header.")
 
         if not scope.HTTP_OVERWRITE:
@@ -837,8 +837,6 @@ class RequestServer:
 
         if src_res.is_collection:
             dest_path = dest_path.rstrip("/") + "/"
-
-        assert scope.HTTP_X_FORWARDED_PROTO
 
         dest_scheme = dest_scheme.lower() if dest_scheme else ""
         url_scheme = scope.url_scheme.lower()

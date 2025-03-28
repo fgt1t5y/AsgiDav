@@ -7,7 +7,7 @@ import os
 import unittest
 from tempfile import gettempdir
 
-from wsgidav.prop_man import property_manager
+from AsgiDav.prop_man import property_manager
 
 # ========================================================================
 # BasicTest

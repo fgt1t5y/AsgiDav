@@ -8,11 +8,11 @@ import unittest
 from tempfile import gettempdir
 from time import sleep
 
-from wsgidav.dav_error import DAVError
-from wsgidav.lock_man import lock_manager, lock_storage
+from AsgiDav.dav_error import DAVError
+from AsgiDav.lock_man import lock_manager, lock_storage
 
 try:
-    from wsgidav.lock_man.lock_storage_redis import LockStorageRedis
+    from AsgiDav.lock_man.lock_storage_redis import LockStorageRedis
 except ImportError:
     LockStorageRedis = None
 

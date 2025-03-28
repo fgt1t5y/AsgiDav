@@ -10,7 +10,7 @@ import sys
 from setuptools import find_packages, setup
 from cx_Freeze import setup, Executable  # noqa re-import setup
 
-from wsgidav import __version__
+from AsgiDav import __version__
 
 # Check for Windows MSI Setup
 if "bdist_msi" not in sys.argv:  # or len(sys.argv) != 2:

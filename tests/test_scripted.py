@@ -18,10 +18,10 @@ from threading import Thread
 
 from tests import davclient
 from tests.util import WsgiDavTestServer
-from wsgidav import util
-from wsgidav.fs_dav_provider import FilesystemProvider
-from wsgidav.server.ext_wsgiutils_server import ExtServer
-from wsgidav.wsgidav_app import WsgiDAVApp
+from AsgiDav import util
+from AsgiDav.fs_dav_provider import FilesystemProvider
+# from AsgiDav.server.ext_wsgiutils_server import ExtServer
+from AsgiDav.app import WsgiDAVApp
 
 # SERVER_ADDRESS
 # (using localhost or mixing hostnames with IPs may be very slow!)

@@ -247,7 +247,7 @@ class HTTPScope:
         self.CONTENT_TYPE = self.headers.get("content-type")
         self.CONTENT_LENGTH = self.headers.get("content-length")
         self.HTTP_DESTINATION = self.headers.get("destination")
-        self.HTTP_X_FORWARDED_PROTO = self.headers.get("x-forwarded-proto")
+        self.HTTP_X_FORWARDED_PROTO = self.headers.get("x-forwarded-proto", "")
         self.HTTP_HOST = self.headers["host"]
         self.HTTP_TIMEOUT = self.headers.get("timeout")
         self.HTTP_LOCK_TOKEN = self.headers.get("lock-token")

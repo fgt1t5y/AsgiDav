@@ -54,9 +54,10 @@ import platform
 import subprocess
 import sys
 
+from AsgiDav import __version__, util
+from AsgiDav.xml_tools import use_lxml
+
 from tests.util import Timing, WsgiDavTestServer
-from wsgidav import __version__, util
-from wsgidav.xml_tools import use_lxml
 
 try:
     from io import StringIO

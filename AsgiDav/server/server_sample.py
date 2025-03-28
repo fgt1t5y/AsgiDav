@@ -7,7 +7,7 @@ Simple example how to a run AsgiDav in a 3rd-party ASGI server.
 
 import uvicorn
 
-from AsgiDav.app import WsgiDAVApp
+from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 from AsgiDav.mw.error_printer import ErrorPrinter
 from AsgiDav.mw.request_resolver import RequestResolver
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "cors": {"allow_origin": "*"},
     }
 
-    app = WsgiDAVApp(config)
+    app = AsgiDavApp(config)
     config = uvicorn.Config(app=app, host="127.0.0.1", port=8080)
     server = uvicorn.Server(config=config)
     server.run()

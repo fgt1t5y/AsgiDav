@@ -16,12 +16,14 @@ import unittest
 from tempfile import gettempdir
 from threading import Thread
 
+from AsgiDav import util
+
+# from AsgiDav.server.ext_wsgiutils_server import ExtServer
+from AsgiDav.app import AsgiDavApp
+from AsgiDav.fs_dav_provider import FilesystemProvider
+
 from tests import davclient
 from tests.util import WsgiDavTestServer
-from AsgiDav import util
-from AsgiDav.fs_dav_provider import FilesystemProvider
-# from AsgiDav.server.ext_wsgiutils_server import ExtServer
-from AsgiDav.app import WsgiDAVApp
 
 # SERVER_ADDRESS
 # (using localhost or mixing hostnames with IPs may be very slow!)
@@ -146,7 +148,7 @@ class WsgiDAVServerThread(Thread):
                 }
             )
 
-        app = WsgiDAVApp(config)
+        app = AsgiDavApp(config)
 
         self.ext_server = ExtServer((config["host"], config["port"]), {"": app})
 

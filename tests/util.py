@@ -17,7 +17,7 @@ import time
 from tempfile import gettempdir
 
 from AsgiDav import util
-from AsgiDav.app import WsgiDAVApp
+from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -153,7 +153,7 @@ def run_wsgidav_server(with_auth, with_ssl, provider=None, **kwargs):
     if kwargs.get("startup_event"):
         config["startup_event"] = kwargs["startup_event"]
 
-    app = WsgiDAVApp(config)
+    app = AsgiDavApp(config)
 
     # from wsgidav.server.server_cli import _runBuiltIn
     # _runBuiltIn(app, config, None)
@@ -221,7 +221,7 @@ class WsgiDavTestServer:
 
     def stop(self):
         if self.proc:
-            print("Stopping WsgiDAVAppTestServer...")
+            print("Stopping AsgiDavAppTestServer...")
             self.proc.terminate()
             self.proc.join()
             self.proc = None

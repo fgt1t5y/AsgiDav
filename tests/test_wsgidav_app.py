@@ -18,7 +18,7 @@ from urllib.parse import quote
 
 import pytest
 from AsgiDav import util
-from AsgiDav.app import WsgiDAVApp
+from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 
 from tests.util import create_test_folder
@@ -45,7 +45,7 @@ except ImportError:
 class ServerTest(unittest.TestCase):
     """Test wsgidav_app using paste.fixture."""
 
-    def _makeWsgiDAVApp(self, share_path, with_authentication):
+    def _makeAsgiDavApp(self, share_path, with_authentication):
         provider = FilesystemProvider(share_path)
 
         config = {
@@ -71,11 +71,11 @@ class ServerTest(unittest.TestCase):
                 "/": {"tester": {"password": "secret", "description": "", "roles": []}}
             }
 
-        return WsgiDAVApp(config)
+        return AsgiDavApp(config)
 
     def setUp(self):
         self.root_path = create_test_folder("wsgidav-test")
-        wsgi_app = self._makeWsgiDAVApp(self.root_path, False)
+        wsgi_app = self._makeAsgiDavApp(self.root_path, False)
         self.app = webtest.TestApp(wsgi_app)
 
     def tearDown(self):
@@ -222,7 +222,7 @@ class ServerTest(unittest.TestCase):
         app.get("/file1.txt", status=200)
 
         # Re-create test app with authentication
-        wsgi_app = self._makeWsgiDAVApp(self.root_path, True)
+        wsgi_app = self._makeAsgiDavApp(self.root_path, True)
         app = self.app = webtest.TestApp(wsgi_app)
 
         # Anonymous access must fail (expect 401 Not Authorized)

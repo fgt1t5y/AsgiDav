@@ -76,7 +76,7 @@ MIN_PYTHON_VERSION_INFO = (3, 9)
 # check_python_version(MIN_PYTHON_VERSION_INFO)
 
 
-class WsgiDAVApp:
+class AsgiDavApp:
     def __init__(self, config):
         self.config = copy.deepcopy(DEFAULT_CONFIG)
 

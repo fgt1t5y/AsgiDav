@@ -1,5 +1,9 @@
 import logging
 
+from AsgiDav.app import AsgiDavApp
+from AsgiDav.fs_dav_provider import FilesystemProvider
+from cheroot import wsgi
+
 logger = logging.getLogger("wsgidav")
 
 # _logger = logging.getLogger(__name__)
@@ -30,10 +34,6 @@ logger = logging.getLogger("wsgidav")
 # test_logger(_logger, "1w")
 # test_logger(_logger2, "2w")
 
-from cheroot import wsgi
-
-from wsgidav.wsgidav_app import WsgiDAVApp
-from wsgidav.fs_dav_provider import FilesystemProvider
 
 provider = FilesystemProvider("/Users/martin/pub")
 config = {
@@ -44,7 +44,7 @@ config = {
     "verbose": 3,
 }
 
-app = WsgiDAVApp(config)
+app = AsgiDavApp(config)
 
 server_args = {
     "bind_addr": (config["host"], config["port"]),

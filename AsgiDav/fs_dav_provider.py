@@ -158,7 +158,7 @@ class FileResource(DAVNonCollection):
                 self.get_ref_url(),
                 destRes.get_ref_url(),
                 with_children=True,
-                environ=self.scope,
+                scope=self.scope,
             )
 
     def set_last_modified(self, dest_path, time_stamp, *, dry_run):
@@ -332,7 +332,7 @@ class FolderResource(DAVCollection):
                     self.get_ref_url(),
                     destRes.get_ref_url(),
                     with_children=False,
-                    environ=self.scope,
+                    scope=self.scope,
                 )
             else:
                 propMan.copy_properties(
@@ -360,7 +360,7 @@ class FolderResource(DAVCollection):
                 self.get_ref_url(),
                 destRes.get_ref_url(),
                 with_children=True,
-                environ=self.scope,
+                scope=self.scope,
             )
 
     def set_last_modified(self, dest_path, time_stamp, *, dry_run):

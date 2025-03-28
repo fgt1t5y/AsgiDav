@@ -11,8 +11,8 @@ These tasks are performed:
 
     - Set up the configuration from defaults, configuration file, and command line
       options.
-    - Instantiate the WsgiDAVApp object (which is a WSGI application)
-    - Start a WSGI server for this WsgiDAVApp object
+    - Instantiate the AsgiDavApp object (which is a WSGI application)
+    - Start a WSGI server for this AsgiDavApp object
 
 Configuration is defined like this:
 
@@ -45,7 +45,7 @@ from threading import Timer
 import yaml
 
 from AsgiDav import __version__, util
-from AsgiDav.app import WsgiDAVApp
+from AsgiDav.app import AsgiDavApp
 from AsgiDav.default_conf import DEFAULT_CONFIG, DEFAULT_VERBOSE
 from AsgiDav.fs_dav_provider import FilesystemProvider
 from AsgiDav.xml_tools import use_lxml
@@ -163,8 +163,7 @@ See https://github.com/mar10/wsgidav for additional information.
     parser.add_argument(
         "--auth",
         choices=("anonymous", "nt", "pam-login"),
-        help="quick configuration of a domain controller when no config file "
-        "is used",
+        help="quick configuration of a domain controller when no config file is used",
     )
     parser.add_argument(
         "--server",
@@ -433,265 +432,6 @@ def _init_config():
     return cli_opts, config
 
 
-def _run_cheroot(app, config, _server):
-    """Run WsgiDAV using cheroot.server (https://cheroot.cherrypy.dev/)."""
-    try:
-        from cheroot import server, wsgi
-    except ImportError:
-        _logger.exception("Could not import Cheroot (https://cheroot.cherrypy.dev/).")
-        _logger.error("Try `pip install cheroot`.")
-        return False
-
-    version = (
-        f"{util.public_wsgidav_info} {wsgi.Server.version} {util.public_python_info}"
-    )
-    # wsgi.Server.version = version
-
-    info = _get_common_info(config)
-
-    # Support SSL
-    if info["use_ssl"]:
-        ssl_adapter = info["ssl_adapter"]
-        ssl_adapter = server.get_ssl_adapter_class(ssl_adapter)
-        wsgi.Server.ssl_adapter = ssl_adapter(
-            info["ssl_cert"], info["ssl_pk"], info["ssl_chain"]
-        )
-        _logger.info(f"SSL / HTTPS enabled. Adapter: {ssl_adapter}")
-
-    _logger.info(f"Running {version}")
-    _logger.info(f"Serving on {info['url']} ...")
-
-    server_args = {
-        "bind_addr": (config["host"], config["port"]),
-        "wsgi_app": app,
-        "server_name": version,
-        # File Explorer needs lot of threads (see issue #149):
-        "numthreads": 50,  # TODO: still required?
-    }
-    # Override or add custom args
-    custom_args = util.get_dict_value(config, "server_args", as_dict=True)
-    server_args.update(custom_args)
-
-    class PatchedServer(wsgi.Server):
-        STARTUP_NOTIFICATION_DELAY = 0.5
-
-        def serve(self, *args, **kwargs):
-            _logger.error("wsgi.Server.serve")
-            if startup_event and not startup_event.is_set():
-                Timer(self.STARTUP_NOTIFICATION_DELAY, startup_event.set).start()
-                _logger.error("wsgi.Server is ready")
-            return super().serve(*args, **kwargs)
-
-    # If the caller passed a startup event, monkey patch the server to set it
-    # when the request handler loop is entered
-    startup_event = config.get("startup_event")
-    if startup_event:
-        server = PatchedServer(**server_args)
-    else:
-        server = wsgi.Server(**server_args)
-
-    try:
-        server.start()
-    except KeyboardInterrupt:
-        _logger.warning("Caught Ctrl-C, shutting down...")
-    finally:
-        server.stop()
-
-    return
-
-
-def _run_ext_wsgiutils(app, config, _server):
-    """Run WsgiDAV using ext_wsgiutils_server from the wsgidav package."""
-    from wsgidav.server import ext_wsgiutils_server
-
-    _logger.warning(
-        "WARNING: This single threaded server (ext-wsgiutils) is not meant for production."
-    )
-    try:
-        ext_wsgiutils_server.serve(config, app)
-    except KeyboardInterrupt:
-        _logger.warning("Caught Ctrl-C, shutting down...")
-    return
-
-
-def _run_gevent(app, config, server):
-    """Run WsgiDAV using gevent if gevent (https://www.gevent.org).
-
-    See
-      https://github.com/gevent/gevent/blob/master/src/gevent/pywsgi.py#L1356
-      https://github.com/gevent/gevent/blob/master/src/gevent/server.py#L38
-    for more options.
-    """
-    try:
-        import gevent
-        import gevent.monkey
-        from gevent.pywsgi import WSGIServer
-    except ImportError:
-        _logger.exception("Could not import gevent (http://www.gevent.org).")
-        _logger.error("Try `pip install gevent`.")
-        return False
-
-    gevent.monkey.patch_all()
-
-    info = _get_common_info(config)
-    version = f"gevent/{gevent.__version__}"
-    version = f"{util.public_wsgidav_info} {version} {util.public_python_info}"
-
-    # Override or add custom args
-    server_args = {
-        "wsgi_app": app,
-        "bind_addr": (config["host"], config["port"]),
-    }
-    custom_args = util.get_dict_value(config, "server_args", as_dict=True)
-    server_args.update(custom_args)
-
-    if info["use_ssl"]:
-        dav_server = WSGIServer(
-            server_args["bind_addr"],
-            app,
-            keyfile=info["ssl_pk"],
-            certfile=info["ssl_cert"],
-            ca_certs=info["ssl_chain"],
-        )
-    else:
-        dav_server = WSGIServer(server_args["bind_addr"], app)
-
-    # If the caller passed a startup event, monkey patch the server to set it
-    # when the request handler loop is entered
-    startup_event = config.get("startup_event")
-    if startup_event:
-
-        def _patched_start():
-            dav_server.start_accepting = org_start  # undo the monkey patch
-            org_start()
-            _logger.info("gevent is ready")
-            startup_event.set()
-
-        org_start = dav_server.start_accepting
-        dav_server.start_accepting = _patched_start
-
-    _logger.info(f"Running {version}")
-    _logger.info(f"Serving on {info['url']} ...")
-    try:
-        gevent.spawn(dav_server.serve_forever())
-    except KeyboardInterrupt:
-        _logger.warning("Caught Ctrl-C, shutting down...")
-    return
-
-
-def _run_gunicorn(app, config, server):
-    """Run WsgiDAV using Gunicorn (https://gunicorn.org)."""
-    try:
-        import gunicorn.app.base
-    except ImportError:
-        _logger.exception("Could not import Gunicorn (https://gunicorn.org).")
-        _logger.error("Try `pip install gunicorn` (UNIX only).")
-        return False
-
-    info = _get_common_info(config)
-
-    class GunicornApplication(gunicorn.app.base.BaseApplication):
-        def __init__(self, app, options=None):
-            self.options = options or {}
-            self.application = app
-            super().__init__()
-
-        def load_config(self):
-            config = {
-                key: value
-                for key, value in self.options.items()
-                if key in self.cfg.settings and value is not None
-            }
-            for key, value in config.items():
-                self.cfg.set(key.lower(), value)
-
-        def load(self):
-            return self.application
-
-    # See https://docs.gunicorn.org/en/latest/settings.html
-    server_args = {
-        "bind": "{}:{}".format(config["host"], config["port"]),
-        "threads": 50,
-        "timeout": 1200,
-    }
-    if info["use_ssl"]:
-        server_args.update(
-            {
-                "keyfile": info["ssl_pk"],
-                "certfile": info["ssl_cert"],
-                "ca_certs": info["ssl_chain"],
-                # "ssl_version": ssl_version
-                # "cert_reqs": ssl_cert_reqs
-                # "ciphers": ssl_ciphers
-            }
-        )
-    # Override or add custom args
-    custom_args = util.get_dict_value(config, "server_args", as_dict=True)
-    server_args.update(custom_args)
-
-    version = f"gunicorn/{gunicorn.__version__}"
-    version = f"{util.public_wsgidav_info} {version} {util.public_python_info}"
-    _logger.info(f"Running {version} ...")
-
-    GunicornApplication(app, server_args).run()
-
-
-def _run_paste(app, config, server):
-    """Run WsgiDAV using paste.httpserver, if Paste is installed.
-
-    See http://pythonpaste.org/modules/httpserver.html for more options
-    """
-    try:
-        from paste import httpserver
-    except ImportError:
-        _logger.exception(
-            "Could not import paste.httpserver (https://github.com/cdent/paste)."
-        )
-        _logger.error("Try `pip install paste`.")
-        return False
-
-    info = _get_common_info(config)
-
-    version = httpserver.WSGIHandler.server_version
-    version = f"{util.public_wsgidav_info} {version} {util.public_python_info}"
-
-    # See http://pythonpaste.org/modules/httpserver.html for more options
-    server = httpserver.serve(
-        app,
-        host=config["host"],
-        port=config["port"],
-        server_version=version,
-        # This option enables handling of keep-alive and expect-100:
-        protocol_version="HTTP/1.1",
-        start_loop=False,
-    )
-
-    if config["verbose"] >= 5:
-        __handle_one_request = server.RequestHandlerClass.handle_one_request
-
-        def handle_one_request(self):
-            __handle_one_request(self)
-            if self.close_connection == 1:
-                _logger.debug("HTTP Connection : close")
-            else:
-                _logger.debug("HTTP Connection : continue")
-
-        server.RequestHandlerClass.handle_one_request = handle_one_request
-
-    _logger.info(f"Running {version} ...")
-    host, port = server.server_address
-    if host == "0.0.0.0":
-        _logger.info(f"Serving on 0.0.0.0:{port} view at http://127.0.0.1:{port}")
-    else:
-        _logger.info(f"Serving on {info['url']}")
-
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        _logger.warning("Caught Ctrl-C, shutting down...")
-    return
-
-
 def _run_uvicorn(app, config, server):
     """Run WsgiDAV using Uvicorn (https://www.uvicorn.org)."""
     try:
@@ -733,50 +473,20 @@ def _run_uvicorn(app, config, server):
     uvicorn.run(app, **server_args)
 
 
-def _run_wsgiref(app, config, _server):
-    """Run WsgiDAV using wsgiref.simple_server (https://docs.python.org/3/library/wsgiref.html)."""
-    from wsgiref.simple_server import WSGIRequestHandler, make_server
-
-    version = WSGIRequestHandler.server_version
-    version = f"{util.public_wsgidav_info} {version}"  # {util.public_python_info}"
-    _logger.info(f"Running {version} ...")
-
-    _logger.warning(
-        "WARNING: This single threaded server (wsgiref) is not meant for production."
-    )
-    WSGIRequestHandler.server_version = version
-    httpd = make_server(config["host"], config["port"], app)
-    # httpd.RequestHandlerClass.server_version = version
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        _logger.warning("Caught Ctrl-C, shutting down...")
-    return
-
-
 SUPPORTED_SERVERS = {
-    "cheroot": _run_cheroot,
-    "ext-wsgiutils": _run_ext_wsgiutils,
-    "gevent": _run_gevent,
-    "gunicorn": _run_gunicorn,
-    "paste": _run_paste,
     "uvicorn": _run_uvicorn,
-    "wsgiref": _run_wsgiref,
 }
 
 
 def run():
     cli_opts, config = _init_config()
-
     # util.init_logging(config) # now handled in constructor:
     config["logging"]["enable"] = True
-
     info = _get_common_info(config)
-
-    app = WsgiDAVApp(config)
-
+    app = AsgiDavApp(config)
     server = config["server"]
     handler = SUPPORTED_SERVERS.get(server)
+
     if not handler:
         raise RuntimeError(
             "Unsupported server type {!r} (expected {!r})".format(

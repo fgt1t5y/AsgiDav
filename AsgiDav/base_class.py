@@ -43,7 +43,7 @@ class DAVProvider(ABC):
     def set_mount_path(self, mount_path):
         """Set application root for this resource provider.
 
-        This is the value of SCRIPT_NAME, when WsgiDAVApp is called.
+        This is the value of SCRIPT_NAME, when AsgiDavApp is called.
         """
         assert mount_path in ("", "/") or (
             mount_path.startswith("/") and not mount_path.endswith("/")

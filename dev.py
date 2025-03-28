@@ -1,4 +1,4 @@
-from AsgiDav.app import WsgiDAVApp
+from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 from AsgiDav.mw.request_resolver import RequestResolver
 
@@ -24,4 +24,4 @@ config = {
     "cors": {"allow_origin": "*"},
 }
 
-app = WsgiDAVApp(config)
+app = AsgiDavApp(config)

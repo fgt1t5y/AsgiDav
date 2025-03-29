@@ -5,11 +5,9 @@ name = "pypi"
 
 [dev-packages]
 # black = "~=24.3"
-Cheroot = "*"  # "~=8.5"
 cx_Freeze = {version = "*", markers="sys_platform == 'win32'"}
 # isort = "*"
 mypy = "*"
-Paste = "*"  # "~=2.0"
 pylint = "*"
 pytest = "*"  # "~=7.3"
 pytest-cov = "*"  # "~=4.0"

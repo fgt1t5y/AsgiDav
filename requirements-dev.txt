@@ -2,8 +2,7 @@
 
 -r requirements.txt
 
-cheroot~=10.0
-Paste~=3.0
+uvicorn
 pytest~=8.2
 pytest-cov~=5.0
 # recommonmark

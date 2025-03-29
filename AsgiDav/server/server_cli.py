@@ -433,7 +433,7 @@ def _init_config():
     return cli_opts, config
 
 
-def _run_uvicorn(app, config, server):
+def _run_uvicorn(app, config):
     """Run WsgiDAV using Uvicorn (https://www.uvicorn.org)."""
     try:
         import uvicorn
@@ -482,7 +482,6 @@ def run():
     config["logging"]["enable"] = True
     info = _get_common_info(config)
     app = AsgiDavApp(config)
-    server = config["server"]
 
     if not use_lxml and config["verbose"] >= 3:
         _logger.warning(
@@ -501,7 +500,7 @@ def run():
 
         Timer(BROWSE_DELAY, _worker).start()
 
-    _run_uvicorn(app, config, server)
+    _run_uvicorn(app, config)
 
     return
 

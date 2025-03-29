@@ -76,16 +76,16 @@ def create_test_folder(name):
 
 
 # ==============================================================================
-# run_wsgidav_server
+# run_asgidav_server
 # ==============================================================================
 
 
-def run_wsgidav_server(with_auth, with_ssl, provider=None, **kwargs):
+def run_asgidav_server(with_auth, with_ssl, provider=None, **kwargs):
     """Start blocking WsgiDAV server (called as a separate process)."""
 
     package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
     share_path = os.path.join(gettempdir(), "wsgidav-test")
+
     if not os.path.exists(share_path):
         os.mkdir(share_path)
 
@@ -155,11 +155,9 @@ def run_wsgidav_server(with_auth, with_ssl, provider=None, **kwargs):
 
     app = AsgiDavApp(config)
 
-    # from wsgidav.server.server_cli import _runBuiltIn
-    # _runBuiltIn(app, config, None)
-    from wsgidav.server.server_cli import _run_cheroot
+    from AsgiDav.server.server_cli import _run_uvicorn
 
-    _run_cheroot(app, config, "cheroot")
+    _run_uvicorn(app, config)
     # blocking...
 
 
@@ -182,10 +180,12 @@ class AsgiDavTestServer:
         self.startup_event = multiprocessing.Event()
         self.startup_timeout = 5
         self.proc = None
+
         assert not profile, "Not yet implemented"
 
     def __enter__(self):
         self.start()
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -205,18 +205,22 @@ class AsgiDavTestServer:
             "startup_event": self.startup_event,
             "startup_timeout": self.startup_timeout,
         }
+
         print("Starting AsgiDavTestServer...")
-        self.proc = multiprocessing.Process(target=run_wsgidav_server, kwargs=kwargs)
+
+        self.proc = multiprocessing.Process(target=run_asgidav_server, kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
         print("Starting AsgiDavTestServer... waiting for request loop...")
-        # time.sleep(self.start_delay)
+
         if not self.startup_event.wait(self.startup_timeout):
             raise RuntimeError(
                 f"AsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
             )
+
         print("Starting AsgiDavTestServer... running.")
+
         return self
 
     def stop(self):
@@ -225,4 +229,5 @@ class AsgiDavTestServer:
             self.proc.terminate()
             self.proc.join()
             self.proc = None
+
         print("Stopping AsgiDavTestServer... done.")

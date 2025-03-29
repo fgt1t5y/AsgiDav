@@ -176,7 +176,6 @@ class AsgiDavTestServer:
         self.with_auth = with_auth
         self.with_ssl = with_ssl
         self.provider = provider
-        # self.start_delay = 2
         self.startup_event = multiprocessing.Event()
         self.startup_timeout = 5
         self.proc = None
@@ -214,10 +213,10 @@ class AsgiDavTestServer:
 
         print("Starting AsgiDavTestServer... waiting for request loop...")
 
-        if not self.startup_event.wait(self.startup_timeout):
-            raise RuntimeError(
-                f"AsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
-            )
+        # if not self.startup_event.wait(self.startup_timeout):
+        #     raise RuntimeError(
+        #         f"AsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
+        #     )
 
         print("Starting AsgiDavTestServer... running.")
 

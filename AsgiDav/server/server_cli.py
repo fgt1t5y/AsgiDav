@@ -446,7 +446,6 @@ def _run_uvicorn(app, config):
 
     # See https://www.uvicorn.org/settings/
     server_args = {
-        "interface": "wsgi",
         "host": config["host"],
         "port": config["port"],
         # TODO: see _run_cheroot()

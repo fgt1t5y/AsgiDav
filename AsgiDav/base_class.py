@@ -167,6 +167,7 @@ class AsgiDavContext:
     all_input_read: int | None
 
     def __init__(self) -> None:
+        self.debug_break = False
         self.auth = AsgiDavAuth()
         self.conditions = AsgiDavConditions()
 
@@ -200,7 +201,7 @@ class HTTPScope:
     HTTP_CONTENT_ENCODING: str | None
     HTTP_CONTENT_RANGE: str | None
     CONTENT_TYPE: str | None
-    CONTENT_LENGTH: str | None
+    CONTENT_LENGTH: str
     HTTP_DESTINATION: str | None
     HTTP_X_FORWARDED_PROTO: str | None
     HTTP_HOST: str
@@ -245,8 +246,8 @@ class HTTPScope:
         self.HTTP_IF_NONE_MATCH = self.headers.get("if-none-match")
         self.HTTP_CONTENT_ENCODING = self.headers.get("content-encoding")
         self.HTTP_CONTENT_RANGE = self.headers.get("content-range")
-        self.CONTENT_TYPE = self.headers.get("content-type")
-        self.CONTENT_LENGTH = self.headers.get("content-length")
+        self.CONTENT_TYPE = self.headers.get("content-type", "")
+        self.CONTENT_LENGTH = self.headers.get("content-length", "")
         self.HTTP_DESTINATION = self.headers.get("destination")
         self.HTTP_X_FORWARDED_PROTO = self.headers.get("x-forwarded-proto", "")
         self.HTTP_HOST = self.headers["host"]

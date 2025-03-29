@@ -90,7 +90,7 @@ def run_asgidav_server(with_auth, with_ssl, provider=None, **kwargs):
         os.mkdir(share_path)
 
     if provider is None:
-        provider = FilesystemProvider(share_path)
+        provider = FilesystemProvider(share_path, readonly=False, fs_opts={})
 
     config = {
         "host": "127.0.0.1",

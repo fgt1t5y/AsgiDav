@@ -1107,6 +1107,7 @@ class RequestServer:
         if lock_man is None:
             # http://www.webdav.org/specs/rfc4918.html#rfc.section.6.3
             self._fail(HTTP_NOT_IMPLEMENTED, "This realm does not support locking.")
+
         if res and res.prevent_locking():
             self._fail(HTTP_FORBIDDEN, "This resource does not support locking.")
 

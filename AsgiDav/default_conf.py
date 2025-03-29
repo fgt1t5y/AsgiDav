@@ -53,9 +53,9 @@ DEFAULT_CONFIG = {
     "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
     "middleware_stack": [
         # WsgiDavDebugFilter,
-        Cors,
-        ErrorPrinter,
-        HTTPAuthenticator,
+        # Cors,
+        # ErrorPrinter,
+        # HTTPAuthenticator,
         RequestResolver,  # this must be the last middleware item
     ],
     # HTTP Authentication Options

@@ -43,7 +43,7 @@ from AsgiDav.xml_tools import etree, is_etree_element, make_sub_element, xml_to_
 __docformat__ = "reStructuredText"
 
 #: The base logger (silent by default)
-BASE_LOGGER_NAME = "wsgidav"
+BASE_LOGGER_NAME = "AsgiDav"
 _logger = logging.getLogger(BASE_LOGGER_NAME)
 
 #: Currently used Python version as string
@@ -1113,8 +1113,7 @@ async def parse_xml_body(scope: HTTPScope, receive, *, allow_empty=False):
     - empty string:
       WSGI allows it to be empty or absent: treated like 'missing'.
     """
-    #
-    clHeader = scope.CONTENT_LENGTH.strip()  # type: ignore
+    clHeader = scope.CONTENT_LENGTH.strip()
     #    content_length = -1 # read all of stream
     if clHeader == "":
         # No Content-Length given: read to end of stream

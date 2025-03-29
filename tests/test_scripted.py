@@ -21,7 +21,6 @@ from AsgiDav import util
 # from AsgiDav.server.ext_wsgiutils_server import ExtServer
 from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
-
 from tests import davclient
 from tests.util import AsgiDavTestServer
 

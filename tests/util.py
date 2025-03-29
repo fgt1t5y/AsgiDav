@@ -5,7 +5,7 @@
     Test helpers.
 
 Example:
-    with WsgiDavTestServer(opts):
+    with AsgiDavTestServer(opts):
         ... test methods
 """
 
@@ -135,10 +135,10 @@ def run_wsgidav_server(with_auth, with_ssl, provider=None, **kwargs):
         config.update(
             {
                 "ssl_certificate": os.path.join(
-                    package_path, "wsgidav/server/sample_bogo_server.crt"
+                    package_path, "AsgiDav/server/sample_bogo_server.crt"
                 ),
                 "ssl_private_key": os.path.join(
-                    package_path, "wsgidav/server/sample_bogo_server.key"
+                    package_path, "AsgiDav/server/sample_bogo_server.key"
                 ),
                 "ssl_certificate_chain": None,
                 # "accept_digest": True,
@@ -164,12 +164,12 @@ def run_wsgidav_server(with_auth, with_ssl, provider=None, **kwargs):
 
 
 # ========================================================================
-# WsgiDavTestServer
+# AsgiDavTestServer
 # ========================================================================
 
 
-class WsgiDavTestServer:
-    """Run wsgidav in a separate process."""
+class AsgiDavTestServer:
+    """Run AsgiDav in a separate process."""
 
     def __init__(
         self, config=None, with_auth=False, with_ssl=False, provider=None, profile=False
@@ -205,18 +205,18 @@ class WsgiDavTestServer:
             "startup_event": self.startup_event,
             "startup_timeout": self.startup_timeout,
         }
-        print("Starting WsgiDavTestServer...")
+        print("Starting AsgiDavTestServer...")
         self.proc = multiprocessing.Process(target=run_wsgidav_server, kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
-        print("Starting WsgiDavTestServer... waiting for request loop...")
+        print("Starting AsgiDavTestServer... waiting for request loop...")
         # time.sleep(self.start_delay)
         if not self.startup_event.wait(self.startup_timeout):
             raise RuntimeError(
-                f"WsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
+                f"AsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
             )
-        print("Starting WsgiDavTestServer... running.")
+        print("Starting AsgiDavTestServer... running.")
         return self
 
     def stop(self):
@@ -225,4 +225,4 @@ class WsgiDavTestServer:
             self.proc.terminate()
             self.proc.join()
             self.proc = None
-        print("Stopping WsgiDavTestServer... done.")
+        print("Stopping AsgiDavTestServer... done.")

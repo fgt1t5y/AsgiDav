@@ -76,7 +76,7 @@ See here for details on the Docker image: https://github.com/mar10/docker-litmus
 import subprocess
 import unittest
 
-from tests.util import WsgiDavTestServer
+from tests.util import AsgiDavTestServer
 
 # ========================================================================
 # WsgiDAVServerTest
@@ -105,7 +105,7 @@ class WsgiDAVLitmusTest(unittest.TestCase):
 
     def test_litmus_with_authentication(self):
         """Run litmus test suite on HTTP with authentication."""
-        with WsgiDavTestServer(with_auth=True, with_ssl=False):
+        with AsgiDavTestServer(with_auth=True, with_ssl=False):
             try:
                 res = subprocess.call(
                     ["litmus", "http://127.0.0.1:8080/", "tester", "secret"]
@@ -118,7 +118,7 @@ class WsgiDAVLitmusTest(unittest.TestCase):
 
     def test_litmus_anonymous(self):
         """Run litmus test suite on HTTP with authentication."""
-        with WsgiDavTestServer(with_auth=False, with_ssl=False):
+        with AsgiDavTestServer(with_auth=False, with_ssl=False):
             try:
                 res = subprocess.call(["litmus", "http://127.0.0.1:8080/"])
                 self.assertEqual(res, 0, "litmus suite failed: check the log")
@@ -129,7 +129,7 @@ class WsgiDAVLitmusTest(unittest.TestCase):
 
     def test_litmus_with_ssl_and_authentication(self):
         """Run litmus test suite on SSL / HTTPS with authentication."""
-        with WsgiDavTestServer(with_auth=True, with_ssl=True):
+        with AsgiDavTestServer(with_auth=True, with_ssl=True):
             try:
                 res = subprocess.call(
                     ["litmus", "https://127.0.0.1:8080/", "tester", "secret"]

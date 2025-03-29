@@ -131,7 +131,7 @@ See https://github.com/mar10/wsgidav for additional information.
 """
 
     parser = argparse.ArgumentParser(
-        prog="wsgidav",
+        prog="asgidav",
         description=description,
         epilog=epilog,
         allow_abbrev=False,
@@ -165,12 +165,12 @@ See https://github.com/mar10/wsgidav for additional information.
         choices=("anonymous", "nt", "pam-login"),
         help="quick configuration of a domain controller when no config file is used",
     )
-    parser.add_argument(
-        "--server",
-        choices=SUPPORTED_SERVERS.keys(),
-        # default="cheroot",
-        help="type of pre-installed WSGI server to use (default: cheroot).",
-    )
+    # parser.add_argument(
+    #     "--server",
+    #     choices=SUPPORTED_SERVERS.keys(),
+    #     # default="cheroot",
+    #     help="type of pre-installed WSGI server to use (default: cheroot).",
+    # )
     parser.add_argument(
         "--ssl-adapter",
         choices=("builtin", "pyopenssl"),
@@ -232,7 +232,7 @@ See https://github.com/mar10/wsgidav for additional information.
 
     if args.version:
         if args.verbose >= 4:
-            version_info = "WsgiDAV/{} {}/{}({} bit) {}".format(
+            version_info = "AsgiDav/{} {}/{}({} bit) {}".format(
                 __version__,
                 platform.python_implementation(),
                 util.PYTHON_VERSION,
@@ -271,6 +271,7 @@ See https://github.com/mar10/wsgidav for additional information.
         print("Command line args:")
         for k, v in cmdLineOpts.items():
             print(f"    {k:>12}: {v}")
+
     return cmdLineOpts, parser
 
 
@@ -450,6 +451,7 @@ def _run_uvicorn(app, config, server):
         "port": config["port"],
         # TODO: see _run_cheroot()
     }
+
     if info["use_ssl"]:
         server_args.update(
             {
@@ -462,6 +464,7 @@ def _run_uvicorn(app, config, server):
                 # "ssl_ciphers": ssl_ciphers
             }
         )
+
     # Override or add custom args
     custom_args = util.get_dict_value(config, "server_args", as_dict=True)
     server_args.update(custom_args)
@@ -473,11 +476,6 @@ def _run_uvicorn(app, config, server):
     uvicorn.run(app, **server_args)
 
 
-SUPPORTED_SERVERS = {
-    "uvicorn": _run_uvicorn,
-}
-
-
 def run():
     cli_opts, config = _init_config()
     # util.init_logging(config) # now handled in constructor:
@@ -485,14 +483,6 @@ def run():
     info = _get_common_info(config)
     app = AsgiDavApp(config)
     server = config["server"]
-    handler = SUPPORTED_SERVERS.get(server)
-
-    if not handler:
-        raise RuntimeError(
-            "Unsupported server type {!r} (expected {!r})".format(
-                server, "', '".join(SUPPORTED_SERVERS.keys())
-            )
-        )
 
     if not use_lxml and config["verbose"] >= 3:
         _logger.warning(
@@ -511,7 +501,8 @@ def run():
 
         Timer(BROWSE_DELAY, _worker).start()
 
-    handler(app, config, server)
+    _run_uvicorn(app, config, server)
+
     return
 
 

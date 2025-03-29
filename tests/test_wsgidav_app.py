@@ -17,10 +17,10 @@ import unittest
 from urllib.parse import quote
 
 import pytest
+
 from AsgiDav import util
 from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
-
 from tests.util import create_test_folder
 
 try:

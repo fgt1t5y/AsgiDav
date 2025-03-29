@@ -23,7 +23,7 @@ from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
 
 from tests import davclient
-from tests.util import WsgiDavTestServer
+from tests.util import AsgiDavTestServer
 
 # SERVER_ADDRESS
 # (using localhost or mixing hostnames with IPs may be very slow!)
@@ -55,7 +55,7 @@ def setUpModule():
     global _test_server
     if RUN_OWN_SERVER:
         if RUN_SEPARATE_PROCESS:
-            _test_server = WsgiDavTestServer(with_auth=True, with_ssl=False)
+            _test_server = AsgiDavTestServer(with_auth=True, with_ssl=False)
             _test_server.start()
         else:
             _test_server = WsgiDAVServerThread()

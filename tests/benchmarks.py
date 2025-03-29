@@ -56,8 +56,7 @@ import sys
 
 from AsgiDav import __version__, util
 from AsgiDav.xml_tools import use_lxml
-
-from tests.util import Timing, WsgiDavTestServer
+from tests.util import AsgiDavTestServer, Timing
 
 try:
     from io import StringIO
@@ -222,7 +221,7 @@ def run_benchmarks(opts):
     if opts.get("external_server"):
         _runner(opts)
     else:
-        with WsgiDavTestServer(
+        with AsgiDavTestServer(
             with_auth=False, with_ssl=False, profile=opts.get("profile_server")
         ):
             if opts.get("profile_client"):

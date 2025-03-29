@@ -11,14 +11,14 @@ import unittest
 
 import requests
 
-from tests.util import WsgiDavTestServer
+from tests.util import AsgiDavTestServer
 
 _test_server = None
 
 
 def setUpModule():
     global _test_server
-    _test_server = WsgiDavTestServer(with_auth=True, with_ssl=False)
+    _test_server = AsgiDavTestServer(with_auth=True, with_ssl=False)
     _test_server.start()
 
 

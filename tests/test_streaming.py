@@ -12,11 +12,11 @@ import unittest
 from tempfile import gettempdir
 
 import requests
+
 from AsgiDav import util
 from AsgiDav.dav_provider import DAVNonCollection, DAVProvider
 from AsgiDav.stream_tools import FileLikeQueue
-
-from tests.util import Timing, WsgiDavTestServer, write_test_file
+from tests.util import AsgiDavTestServer, Timing, write_test_file
 
 # ----------------------------------------------------------------------------
 # Dummy DAVProvider implementation
@@ -159,7 +159,7 @@ class BasicTest(unittest.TestCase):
         self.assertEqual(len(q.read(-1)), 0)
 
     def testStream(self):
-        with WsgiDavTestServer(provider=self.provider):
+        with AsgiDavTestServer(provider=self.provider):
             with Timing("testStream", self.SIZE):
                 with open(self.test_file, "rb") as f:
                     r = requests.put("http://127.0.0.1:8080/bar.txt", data=f)

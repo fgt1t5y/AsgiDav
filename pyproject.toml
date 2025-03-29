@@ -3,7 +3,7 @@
 # line-length = 79
 # Support Python 3.10+.
 target-version = "py38"
-src = ["wsgidav", "tests"]
+src = ["AsgiDav", "tests"]
 
 
 [tool.ruff.lint]
@@ -17,7 +17,7 @@ select = [
   # "D",   # pydocstyle
   "I", # isort
   # "C",  # codespell
-  # "SIM",  # 
+  # "SIM",  #
 ]
 
 ignore = [
@@ -35,7 +35,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["wsgidav", "tests"]
+known-first-party = ["AsgiDav", "tests"]
 
 
 [tool.codespell]
@@ -47,7 +47,7 @@ check-hidden = true
 
 # --- Pytest and Coverage Settings ---------------------------------------------
 [tool.pytest.ini_options]
-# addopts = "-ra -q --cov=wsgidav"
+# addopts = "-ra -q --cov=AsgiDav"
 
 testpaths = [
     # ".",
@@ -65,11 +65,10 @@ markers = [
 omit = [
     "tests/*",
     "setup.py",
-    "wsgidav/prop_man/couch_property_manager.py",
-    "wsgidav/prop_man/mongo_property_manager.py",
-    "wsgidav/samples/*",
-    "wsgidav/server/run_reloading_server.py",
-    "wsgidav/server/server_sample.py",
+    "AsgiDav/prop_man/couch_property_manager.py",
+    "AsgiDav/prop_man/mongo_property_manager.py",
+    "AsgiDav/samples/*",
+    "AsgiDav/server/server_sample.py",
 ]
 
 [tool.coverage.report]

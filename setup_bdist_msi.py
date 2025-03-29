@@ -71,7 +71,6 @@ install_requires = []
 # ... The Windows MSI Setup should include lxml and CherryPy
 install_requires.extend(
     [
-        "cheroot",
         "lxml",
     ]
 )
@@ -97,7 +96,6 @@ build_exe_options = {
     # "include_files": [],
     "packages": [
         "asyncio",  # https://stackoverflow.com/a/41881598/19166
-        "cheroot",
         "dbm",
         "wsgidav.dir_browser",
         "wsgidav.dc.nt_dc",

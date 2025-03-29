@@ -14,10 +14,10 @@ FROM python:3-alpine
 
 #dependencies
 RUN apk add --no-cache --virtual .build-deps gcc libxslt-dev musl-dev py3-lxml py3-pip \
-    && pip install wsgidav cheroot lxml \
+    && pip install wsgidav lxml \
     && apk del .build-deps gcc musl-dev
 
-RUN pip install --no-cache-dir wsgidav cheroot lxml
+RUN pip install --no-cache-dir wsgidav lxml
 RUN mkdir -p /var/wsgidav-root
 
 EXPOSE 8080

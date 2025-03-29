@@ -5,7 +5,6 @@ from typing import (
     Callable,
     Iterable,
     Literal,
-    NotRequired,
     TypedDict,
     Union,
 )
@@ -190,8 +189,6 @@ class HTTPScope:
     client: tuple[str, int] | None
     server: tuple[str, int | None] | None
     url_scheme: str
-    # state: NotRequired[dict[str, Any]]
-    # extensions: NotRequired[dict[str, dict[object, object]]]
 
     HTTP_DEPTH: str | None
     HTTP_OVERWRITE: str | None
@@ -307,14 +304,14 @@ ASGIReceiveEvent = Union[
 class HTTPResponseStartEvent(TypedDict):
     type: Literal["http.response.start"]
     status: int
-    headers: NotRequired[Iterable[tuple[bytes, bytes]]]
-    trailers: NotRequired[bool]
+    headers: Iterable[tuple[bytes, bytes]]
+    trailers: bool
 
 
 class HTTPResponseBodyEvent(TypedDict):
     type: Literal["http.response.body"]
     body: bytes
-    more_body: NotRequired[bool]
+    more_body: bool
 
 
 ASGISendEvent = Union[

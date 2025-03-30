@@ -15,8 +15,8 @@ from AsgiDav import __version__
 # Check for Windows MSI Setup
 if "bdist_msi" not in sys.argv:  # or len(sys.argv) != 2:
     raise RuntimeError(
-        "This setup.py variant is only for creating 'bdist_msi' targets: {}\n"
-        "Example `{} bdist_msi`".format(sys.argv, sys.argv[0])
+        f"This setup.py variant is only for creating 'bdist_msi' targets: {sys.argv}\n"
+        f"Example `{sys.argv[0]} bdist_msi`"
     )
 
 org_version = __version__
@@ -54,8 +54,8 @@ else:
     patch = int(patch)
     alpha = 0
 
-version = "{}.{}.{}.{}".format(major, minor, patch, alpha)
-print("Version {}, using {}".format(org_version, version))
+version = f"{major}.{minor}.{patch}.{alpha}"
+print(f"Version {org_version}, using {version}")
 
 try:
     readme = open("README.md", "rt").read()
@@ -79,12 +79,12 @@ tests_require = []
 
 executables = [
     Executable(
-        script="wsgidav/server/server_cli.py",
+        script="AsgiDav/server/server_cli.py",
         base=None,
         # base="Win32GUI",
-        target_name="wsgidav.exe",
+        target_name="asgidav.exe",
         icon="docs/source/logo.ico",
-        shortcut_name="WsgiDAV",
+        shortcut_name="AsgiDav",
         copyright="(c) 2009-2024 Martin Wendt",
         # trademarks="...",
     )
@@ -97,8 +97,8 @@ build_exe_options = {
     "packages": [
         "asyncio",  # https://stackoverflow.com/a/41881598/19166
         "dbm",
-        "wsgidav.dir_browser",
-        "wsgidav.dc.nt_dc",
+        "AsgiDav.dir_browser",
+        "AsgiDav.dc.nt_dc",
     ],
     "excludes": [
         "tkinter",
@@ -144,7 +144,7 @@ setup(
     zip_safe=False,
     extras_require={},
     # cmdclass={"test": ToxCommand, "sphinx": SphinxCommand},
-    entry_points={"console_scripts": ["wsgidav = wsgidav.server.server_cli:run"]},
+    entry_points={"console_scripts": ["asgidav = AsgiDav.server.server_cli:run"]},
     options={
         "build_exe": build_exe_options,
         "bdist_msi": bdist_msi_options,

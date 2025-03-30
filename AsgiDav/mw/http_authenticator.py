@@ -136,12 +136,11 @@ class HTTPAuthenticator(BaseMiddleware):
 
     def __init__(self, app, next_app, config):
         super().__init__(app, next_app, config)
+
         self._verbose = config.get("verbose", 3)
         self.config = config
-
         dc = make_domain_controller(app, config)
         self.domain_controller = dc
-
         hotfixes = util.get_dict_value(config, "hotfixes", as_dict=True)
         # HOT FIX for Windows XP (Microsoft-WebDAV-MiniRedir/5.1.2600):
         # When accessing a share '/dav/', XP sometimes sends digests for '/'.
@@ -150,7 +149,6 @@ class HTTPAuthenticator(BaseMiddleware):
         self.winxp_accept_root_share_login = hotfixes.get(
             "winxp_accept_root_share_login", False
         )
-
         # HOTFIX for Windows
         # MW 2013-12-31: DON'T set this (will MS office to use anonymous always in
         # some scenarios)
@@ -215,7 +213,9 @@ class HTTPAuthenticator(BaseMiddleware):
             # _logger.debug("No authorization required for realm {!r}".format(realm))
             # environ["wsgidav.auth.realm"] = realm
             # environ["wsgidav.auth.user_name"] = ""
-            return self.next_app(scope, receive, send)
+            await self.next_app(scope, receive, send)
+
+            return
 
         if self.trusted_auth_header and scope.headers.get(self.trusted_auth_header):
             # accept a user_name that was injected by a trusted upstream server
@@ -225,7 +225,9 @@ class HTTPAuthenticator(BaseMiddleware):
             # environ["wsgidav.auth.realm"] = realm
             scope.asgidav.auth.user_name = scope.headers.get(self.trusted_auth_header)
 
-            return self.next_app(scope, receive, send)
+            await self.next_app(scope, receive, send)
+
+            return
 
         if scope.HTTP_AUTHORIZATION and not force_logout:
             auth_header = scope.HTTP_AUTHORIZATION
@@ -235,17 +237,26 @@ class HTTPAuthenticator(BaseMiddleware):
                 auth_method = auth_match.group(1).lower()
 
             if auth_method == "digest" and self.accept_digest:
-                return self.handle_digest_auth_request(scope, receive, send)
-            elif auth_method == "digest" and self.accept_basic:
-                return self.send_basic_auth_response(scope, receive, send)
-            elif auth_method == "basic" and self.accept_basic:
-                return self.handle_basic_auth_request(scope, receive, send)
+                await self.handle_digest_auth_request(scope, receive, send)
 
+                return
+            elif auth_method == "digest" and self.accept_basic:
+                await self.send_basic_auth_response(scope, receive, send)
+
+                return
+            elif auth_method == "basic" and self.accept_basic:
+                await self.handle_basic_auth_request(scope, receive, send)
+
+                return
             # The requested auth method is not supported.
             elif self.default_to_digest and self.accept_digest:
-                return self.send_digest_auth_response(scope, receive, send)
+                await self.send_digest_auth_response(scope, receive, send)
+
+                return
             elif self.accept_basic:
-                return self.send_basic_auth_response(scope, receive, send)
+                await self.send_basic_auth_response(scope, receive, send)
+
+                return
 
             _logger.warning(
                 f"HTTPAuthenticator: respond with 400 Bad request; Auth-Method: {auth_method}"
@@ -259,8 +270,11 @@ class HTTPAuthenticator(BaseMiddleware):
             return
 
         if self.default_to_digest:
-            return self.send_digest_auth_response(scope, receive, send)
-        return self.send_basic_auth_response(scope, receive, send)
+            await self.send_digest_auth_response(scope, receive, send)
+
+            return
+
+        await self.send_basic_auth_response(scope, receive, send)
 
     async def send_basic_auth_response(self, scope: HTTPScope, receive, send):
         realm = self.domain_controller.get_domain_realm(scope.path, scope)
@@ -281,7 +295,7 @@ class HTTPAuthenticator(BaseMiddleware):
         )
         await util.send_body_response(send, body)
 
-    def handle_basic_auth_request(self, scope: HTTPScope, receive, send):
+    async def handle_basic_auth_request(self, scope: HTTPScope, receive, send):
         realm = self.domain_controller.get_domain_realm(scope.path, scope)
         auth_header = scope.HTTP_AUTHORIZATION
         auth_value = ""
@@ -298,12 +312,15 @@ class HTTPAuthenticator(BaseMiddleware):
             scope.asgidav.auth.realm = realm
             scope.asgidav.auth.user_name = user_name
 
-            return self.next_app(scope, receive, send)
+            await self.next_app(scope, receive, send)
+
+            return
 
         _logger.warning(
             f"Authentication (basic) failed for user {user_name!r}, realm {realm!r}."
         )
-        return self.send_basic_auth_response(scope, receive, send)
+
+        await self.send_basic_auth_response(scope, receive, send)
 
     async def send_digest_auth_response(self, scope: HTTPScope, receive, send):
         realm = self.domain_controller.get_domain_realm(scope.path, scope)
@@ -337,7 +354,7 @@ class HTTPAuthenticator(BaseMiddleware):
         )
         await util.send_body_response(send, body)
 
-    def handle_digest_auth_request(self, scope: HTTPScope, receive, send):
+    async def handle_digest_auth_request(self, scope: HTTPScope, receive, send):
         realm = self.domain_controller.get_domain_realm(scope.path, scope)
 
         if not realm:
@@ -374,11 +391,6 @@ class HTTPAuthenticator(BaseMiddleware):
             auth_header_key = auth_header[0]
             auth_header_value = auth_header[1].strip().strip('"')
             auth_header_dict[auth_header_key] = auth_header_value
-
-        # _logger.debug(
-        #     "handle_digest_auth_request: {}".format(environ["HTTP_AUTHORIZATION"])
-        # )
-        # _logger.debug("  -> {}".format(auth_header_dict))
 
         req_username = None
         if "username" in auth_header_dict:
@@ -537,12 +549,15 @@ class HTTPAuthenticator(BaseMiddleware):
                 _logger.warning(
                     f"Authentication (digest) failed for user {req_username!r}, realm {realm!r}."
                 )
-            return self.send_digest_auth_response(scope, receive, send)
+
+            await self.send_digest_auth_response(scope, receive, send)
+
+            return
 
         scope.asgidav.auth.realm = realm
         scope.asgidav.auth.user_name = req_username
 
-        return self.next_app(scope, receive, send)
+        await self.next_app(scope, receive, send)
 
     def _compute_digest_response(
         self, realm, user_name, method, uri, nonce, cnonce, qop, nc, scope: HTTPScope

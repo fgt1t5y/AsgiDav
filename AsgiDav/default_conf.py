@@ -55,7 +55,7 @@ DEFAULT_CONFIG = {
         # WsgiDavDebugFilter,
         # Cors,
         # ErrorPrinter,
-        # HTTPAuthenticator,
+        HTTPAuthenticator,
         RequestResolver,  # this must be the last middleware item
     ],
     # HTTP Authentication Options

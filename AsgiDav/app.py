@@ -405,8 +405,6 @@ class AsgiDavApp:
     async def __call__(self, scope, receive, send):
         scope = HTTPScope(scope)
 
-        print(scope.headers)
-
         path: str = scope.path
 
         # We optionally unquote PATH_INFO here, although this should already be

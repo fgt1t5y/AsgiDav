@@ -381,10 +381,6 @@ class LockStorageShelve(LockStorageDict):
         # careful to re-assign values to _dict after modifying them
         self._dict = shelve.open(self._storage_path, writeback=False)
 
-    #        if __debug__ and self._verbose >= 2:
-    #                self._check("After shelve.open()")
-    #            self._dump("After shelve.open()")
-
     def close(self):
         _logger.debug("close()")
         self._lock.acquire_write()

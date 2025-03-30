@@ -241,6 +241,7 @@ class LockManager:
         """Set new timeout for lock, if existing and valid."""
         if timeout is None:
             timeout = LockManager.LOCK_TIME_OUT_DEFAULT
+
         return self.storage.refresh(token, timeout=timeout)
 
     def get_lock(self, token, *, key=None):
@@ -262,9 +263,12 @@ class LockManager:
             "principal",
             "token",
         )
+
         lock = self.storage.get(token)
+
         if key is None or lock is None:
             return lock
+
         return lock[key]
 
     def release(self, token):
@@ -295,6 +299,7 @@ class LockManager:
         url = normalize_lock_root(url)
         lockList = []
         u = url
+
         while u:
             lock_list = self.storage.get_lock_list(
                 u, include_root=True, include_children=False, token_only=False
@@ -309,6 +314,7 @@ class LockManager:
                 if principal is None or principal == lock["principal"]:
                     lockList.append(lock)
             u = util.get_uri_parent(u)
+
         return lockList
 
     def is_url_locked(self, url):
@@ -319,10 +325,12 @@ class LockManager:
     def is_url_locked_by_token(self, url, lock_token):
         """Check, if url (or any of it's parents) is locked by lock_token."""
         lockUrl = self.get_lock(lock_token, key="root")
+
         return lockUrl and util.is_equal_or_child_uri(lockUrl, url)
 
     def remove_all_locks_from_url(self, url, *, recursive=False):
         self._lock.acquire_write()
+
         try:
             lockList = self.get_url_lock_list(url, recursive=recursive)
             for lock in lockList:

@@ -70,7 +70,7 @@ class RequestServer:
 
         # TODO: allow anonymous somehow: this should run, even if http_authenticator middleware
         # is not installed
-        if scope.asgidav.auth.user_name:
+        if not scope.asgidav.auth.user_name:
             _logger.warning("Missing 'wsgidav.auth.user_name' in environ")
 
         scope.asgidav.user_name = scope.asgidav.auth.user_name or "anonymous"
@@ -1327,9 +1327,9 @@ class RequestServer:
         path = scope.path
         provider = self._davProvider
         res = self._davProvider.get_resource_inst(path, scope)
-
         lock_man = provider.lock_manager
-        if lock_man is None:
+
+        if not lock_man:
             self._fail(HTTP_NOT_IMPLEMENTED, "This share does not support locking.")
         elif util.get_content_length(scope) != 0:
             self._fail(
@@ -1355,7 +1355,7 @@ class RequestServer:
 
         if not lock_man.is_token_locked_by_user(lock_token, scope.asgidav.user_name):
             # TODO: there must be a way to allow this for admins.
-            #       Maybe test for "remove_locks" in environ["wsgidav.roles"]
+            #       Maybe test for "remove_locks" in scope.asgidav.roles
             self._fail(HTTP_FORBIDDEN, "Token was created by another user.")
 
         # TODO: Is this correct?: unlock(a/b/c) will remove Lock for 'a/b'

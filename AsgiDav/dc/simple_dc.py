@@ -72,8 +72,8 @@ _logger = util.get_module_logger(__name__)
 
 
 class SimpleDomainController(BaseDomainController):
-    def __init__(self, wsgidav_app, config):
-        super().__init__(wsgidav_app, config)
+    def __init__(self, app, config):
+        super().__init__(app, config)
 
         dc_conf = util.get_dict_value(config, "simple_dc", as_dict=True)
 

@@ -10,17 +10,11 @@ See http://chandlerproject.org/Projects/Davclient
     http://svn.osafoundation.org/tools/davclient/trunk/src/davclient/davclient.py
 """
 
-import os
-import time
 import unittest
-from tempfile import gettempdir
-from threading import Thread
 
 from AsgiDav import util
 
 # from AsgiDav.server.ext_wsgiutils_server import ExtServer
-from AsgiDav.app import AsgiDavApp
-from AsgiDav.fs_dav_provider import FilesystemProvider
 from tests import davclient
 from tests.util import AsgiDavTestServer
 
@@ -35,7 +29,6 @@ SERVER_PORT = 8080
 # (i.e. will not be handled by WsgiDAVServerThread)
 # In this case, run WsgiDAV as external process and specify the URL here.
 # This is also recommended when doing benchmarks:
-RUN_OWN_SERVER = True
 
 # RUN_SEPARATE_PROCESS
 # False:
@@ -45,128 +38,22 @@ RUN_OWN_SERVER = True
 # True:
 #    - Run WsgiDavTestServer in a separate process
 #    - Server log messages not visible
-RUN_SEPARATE_PROCESS = True
 
 _test_server = None
 
 
 def setUpModule():
     global _test_server
-    if RUN_OWN_SERVER:
-        if RUN_SEPARATE_PROCESS:
-            _test_server = AsgiDavTestServer(with_auth=True, with_ssl=False)
-            _test_server.start()
-        else:
-            _test_server = WsgiDAVServerThread()
-            _test_server.start()
-            # let server start the loop, otherwise shutdown might lock
-            time.sleep(0.1)
-    return
+
+    _test_server = AsgiDavTestServer(with_auth=True, with_ssl=False)
+    _test_server.start()
 
 
 def tearDownModule():
     global _test_server
 
     if _test_server:
-        if RUN_SEPARATE_PROCESS:
-            _test_server.stop()
-        else:
-            print("tearDownModule shutdown...")
-            _test_server.shutdown()
-            print("tearDownModule join...")
-            _test_server.join()
-            print("tearDownModule joined")
-        _test_server = None
-    return
-
-
-# ========================================================================
-# WsgiDAVServerThread
-# ========================================================================
-class WsgiDAVServerThread(Thread):
-    """WsgiDAV server that can be run in a parallel thread."""
-
-    def __init__(self):
-        self.ext_server = None
-        Thread.__init__(self)
-
-    def __del__(self):
-        self.shutdown()
-
-    def run(self):
-        print("WsgiDAVServerThread.run()...")
-        withAuthentication = True
-        self.rootpath = os.path.join(gettempdir(), "wsgidav-test")
-        if not os.path.exists(self.rootpath):
-            os.mkdir(self.rootpath)
-        provider = FilesystemProvider(self.rootpath)
-
-        config = {
-            "provider_mapping": {"/": provider},
-            "host": SERVER_HOST,
-            "port": SERVER_PORT,
-            # None: dc.simple_dc.SimpleDomainController(user_mapping)
-            "http_authenticator": {"domain_controller": None},
-            "simple_dc": {"user_mapping": {"*": True}},  # anonymous access
-            "verbose": 4,
-            "logging": {
-                "enable_loggers": [
-                    # "http_authenticator",
-                    # "lock_manager",
-                ],
-                "debug_methods": [],
-            },
-            "property_manager": True,  # True: use property_manager.PropertyManager
-            "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
-        }
-
-        if withAuthentication:
-            config["http_authenticator"].update(
-                {
-                    "accept_basic": True,
-                    "accept_digest": False,
-                    "default_to_digest": False,
-                }
-            )
-            config["simple_dc"].update(
-                {
-                    "user_mapping": {
-                        "/": {
-                            "tester": {
-                                "password": "secret",
-                                "description": "",
-                                "roles": [],
-                            },
-                            "tester2": {
-                                "password": "secret2",
-                                "description": "",
-                                "roles": [],
-                            },
-                        }
-                    }
-                }
-            )
-
-        app = AsgiDavApp(config)
-
-        self.ext_server = ExtServer((config["host"], config["port"]), {"": app})
-
-        print("WsgiDAVServerThread ext_server.serve_forever_stoppable()...")
-        self.ext_server.serve_forever_stoppable()
-        print("WsgiDAVServerThread ext_server stopped.")
-        self.ext_server = None
-
-    #        print "WsgiDAVServerThread.run() terminated"
-
-    def shutdown(self):
-        if self.ext_server:
-            print("WsgiDAVServerThread.shutdown()...")
-            # let server process pending requests, otherwise shutdown might
-            # lock
-            time.sleep(0.1)
-            self.ext_server.stop_serve_forever()
-            self.ext_server = None
-            print("WsgiDAVServerThread.shutdown()... complete")
+        _test_server.stop()
 
 
 # ========================================================================

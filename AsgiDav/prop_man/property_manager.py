@@ -18,9 +18,9 @@ The properties dictionaray is built like::
 
 """
 
+import logging
 import os
 import shelve
-import logging
 
 from AsgiDav import util
 from AsgiDav.rw_lock import ReadWriteLock

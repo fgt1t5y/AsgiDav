@@ -448,7 +448,6 @@ def _run_uvicorn(app, config):
     server_args = {
         "host": config["host"],
         "port": config["port"],
-        # TODO: see _run_cheroot()
     }
 
     if info["use_ssl"]:

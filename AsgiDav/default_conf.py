@@ -29,7 +29,7 @@ DEFAULT_LOGGER_DATE_FORMAT = "%H:%M:%S"
 DEFAULT_LOGGER_FORMAT = "%(asctime)s.%(msecs)03d - %(levelname)-8s: %(message)s"
 
 DEFAULT_CONFIG = {
-    "server": "cheroot",
+    # "server": "cheroot",
     "server_args": {},
     "host": "localhost",
     "port": 8080,

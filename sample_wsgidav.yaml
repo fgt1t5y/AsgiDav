@@ -93,19 +93,19 @@ hotfixes:
 #: See here for an example how to add custom middlewares:
 #:   https://wsgidav.readthedocs.io/en/latest/user_guide_configure.html#middleware-stack
 middleware_stack:
-    - wsgidav.mw.cors.Cors
+    - AsgiDav.mw.cors.Cors
     # - wsgidav.mw.debug_filter.WsgiDavDebugFilter
-    - wsgidav.error_printer.ErrorPrinter
-    - wsgidav.http_authenticator.HTTPAuthenticator
-    - wsgidav.dir_browser.WsgiDavDirBrowser
-    - wsgidav.request_resolver.RequestResolver  # this must be the last middleware item
+    - AsgiDav.mw.error_printer.ErrorPrinter
+    - AsgiDav.mw.http_authenticator.HTTPAuthenticator
+    - AsgiDav.mw.dir_browser.WsgiDavDirBrowser
+    - AsgiDav.mw.request_resolver.RequestResolver  # this must be the last middleware item
 
 # ==============================================================================
 # SHARES
 
-#: Application root, applied before provider mapping shares, e.g. 
+#: Application root, applied before provider mapping shares, e.g.
 #:   <mount_path>/<share_name>/<res_path>
-#: Set this to the mount point (aka location) when WsgiDAV is running behind a 
+#: Set this to the mount point (aka location) when WsgiDAV is running behind a
 #: reverse proxy.
 #: If set, the mount path must have a leading (but not trailing) slash.
 mount_path: null
@@ -146,7 +146,7 @@ fs_dav_provider:
     #: or `*.txt` resource file was opened using the DirBrowser
     # shadow_map:
     #     '/favicon.ico': 'file_path/to/favicon.ico'
-    
+
     #: Serve symbolic link files and folders (default: false)
     follow_symlinks: false
 

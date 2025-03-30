@@ -15,6 +15,7 @@ Default configuration.
 """
 
 # from AsgiDav.mw.debug_filter import WsgiDavDebugFilter
+from AsgiDav.dir_browser.dir_browser import AsgiDavDirBrowser
 from AsgiDav.mw.cors import Cors
 from AsgiDav.mw.error_printer import ErrorPrinter
 from AsgiDav.mw.http_authenticator import HTTPAuthenticator
@@ -53,9 +54,10 @@ DEFAULT_CONFIG = {
     "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
     "middleware_stack": [
         # WsgiDavDebugFilter,
-        # Cors,
-        # ErrorPrinter,
+        Cors,
+        ErrorPrinter,
         HTTPAuthenticator,
+        AsgiDavDirBrowser,
         RequestResolver,  # this must be the last middleware item
     ],
     # HTTP Authentication Options
@@ -88,5 +90,28 @@ DEFAULT_CONFIG = {
         "logger_format": DEFAULT_LOGGER_FORMAT,
         "enable_loggers": [],
         "debug_methods": [],
+    },
+    "dir_browser": {
+        "enable": True,  # Render HTML listing for GET requests on collections
+        # Add a trailing slash to directory URLs (by generating a 301 redirect):
+        "directory_slash": True,
+        # List of fnmatch patterns:
+        "ignore": [
+            ".DS_Store",  # macOS folder meta data
+            "._*",  # macOS hidden data files
+            "Thumbs.db",  # Windows image previews
+        ],
+        "icon": True,
+        "response_trailer": True,  # Raw HTML code, appended as footer (True: use a default)
+        "show_user": True,  # Show authenticated user an realm
+        # Send <dm:mount> response if request URL contains '?davmount' (rfc4709)
+        "davmount": True,
+        # Add 'Mount' link at the top
+        "davmount_links": False,
+        "ms_sharepoint_support": True,  # Invoke MS Office documents for editing using WebDAV
+        "libre_office_support": True,  # Invoke Libre Office documents for editing using WebDAV
+        # The path to the directory that contains template.html and associated assets.
+        # The default is the htdocs directory within the dir_browser directory.
+        "htdocs_path": None,
     },
 }

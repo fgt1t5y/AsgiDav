@@ -42,18 +42,17 @@ for t, el in MS_OFFICE_TYPE_TO_EXT_MAP.items():
 OPEN_OFFICE_EXTENSIONS = {"odt", "odp", "odx"}
 
 
-class WsgiDavDirBrowser(BaseMiddleware):
+class AsgiDavDirBrowser(BaseMiddleware):
     """WSGI middleware that handles GET requests on collections to display directories."""
 
     def __init__(self, app, next_app, config):
         super().__init__(app, next_app, config)
 
         self.dir_config = util.get_dict_value(config, "dir_browser", as_dict=True)
-
         # mount path must be "" or start (but not end) with '/'
         self.mount_path = config.get("mount_path") or ""
-
         htdocs_path = self.dir_config.get("htdocs_path")
+
         if htdocs_path:
             self.htdocs_path = os.path.realpath(htdocs_path)
         else:
@@ -92,7 +91,9 @@ class WsgiDavDirBrowser(BaseMiddleware):
                 )
 
             if scope.method == "HEAD":
-                return util.send_status_response(scope, send, HTTP_OK, is_head=True)
+                await util.send_status_response(scope, send, HTTP_OK, is_head=True)
+
+                return
 
             # Support DAV mount (http://www.ietf.org/rfc/rfc4709.txt)
             if (
@@ -122,9 +123,11 @@ class WsgiDavDirBrowser(BaseMiddleware):
             requrest_uri = scope.REQUEST_URI
             if directory_slash and requrest_uri and not requrest_uri.endswith("/"):
                 _logger.info(f"Redirect {requrest_uri} to {requrest_uri}/")
-                return util.send_redirect_response(
+                await util.send_redirect_response(
                     scope, receive, send, location=requrest_uri + "/"
                 )
+
+                return
 
             context = self._get_context(scope, dav_res)
 
@@ -143,7 +146,9 @@ class WsgiDavDirBrowser(BaseMiddleware):
             )
             await util.send_body_response(send, res)
 
-        return self.next_app(scope, receive, send)
+            return
+
+        await self.next_app(scope, receive, send)
 
     def _fail(self, value, context_info=None, src_exception=None, err_condition=None):
         """Wrapper to raise (and log) DAVError."""
@@ -154,13 +159,13 @@ class WsgiDavDirBrowser(BaseMiddleware):
             )
         raise e
 
-    def _get_context(self, environ, dav_res):
+    def _get_context(self, scope: HTTPScope, dav_res):
         """
         @see: http://www.webdav.org/specs/rfc4918.html#rfc.section.9.4
         """
         assert dav_res.is_collection
 
-        is_readonly = environ["wsgidav.provider"].is_readonly()
+        is_readonly = scope.asgidav.provider.is_readonly()
         ms_sharepoint_support = self.dir_config.get("ms_sharepoint_support")
         libre_office_support = self.dir_config.get("libre_office_support")
         is_top_dir = dav_res.path in ("", "/")
@@ -305,16 +310,14 @@ class WsgiDavDirBrowser(BaseMiddleware):
                 )
             )
 
-        if "wsgidav.auth.user_name" in environ:
+        if scope.asgidav.auth.user_name:
             context.update(
                 {
-                    "is_authenticated": bool(environ.get("wsgidav.auth.user_name")),
-                    "user_name": (environ.get("wsgidav.auth.user_name") or "anonymous"),
-                    "realm": environ.get("wsgidav.auth.realm"),
-                    "user_roles": ", ".join(environ.get("wsgidav.auth.roles") or []),
-                    "user_permissions": ", ".join(
-                        environ.get("wsgidav.auth.permissions") or []
-                    ),
+                    "is_authenticated": bool(scope.asgidav.auth.user_name),
+                    "user_name": (scope.asgidav.auth.user_name or "anonymous"),
+                    "realm": scope.asgidav.auth.realm,
+                    "user_roles": ", ".join(scope.asgidav.auth.roles or []),
+                    "user_permissions": ", ".join(scope.asgidav.auth.permissions or []),
                 }
             )
 

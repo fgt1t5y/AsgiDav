@@ -50,7 +50,7 @@ class DirbrowserTest(unittest.TestCase):
         assert '<meta name="generator" content="WsgiDAV/' in res.text
         assert res.encoding == "utf-8"
         # assert res.encoding == "ISO-8859-1"
-        assert "WsgiDAV" in res.headers["Server"]
+        assert "uvicorn" in res.headers["Server"]
         assert res.headers["Content-Type"] == "text/html; charset=utf-8"
         # assert res.headers["Content-Type"] == "text/html"
 

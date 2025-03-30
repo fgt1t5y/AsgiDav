@@ -1,2 +1,2 @@
 # flake8: noqa
-from ._dir_browser import WsgiDavDirBrowser
+from .dir_browser import AsgiDavDirBrowser

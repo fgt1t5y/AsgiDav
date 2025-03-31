@@ -16,6 +16,8 @@ import sys
 import time
 from tempfile import gettempdir
 
+import uvicorn
+
 from AsgiDav import util
 from AsgiDav.app import AsgiDavApp
 from AsgiDav.fs_dav_provider import FilesystemProvider
@@ -76,11 +78,11 @@ def create_test_folder(name):
 
 
 # ==============================================================================
-# run_asgidav_server
+# make_asgidav_app
 # ==============================================================================
 
 
-def run_asgidav_server(with_auth, with_ssl, provider=None, **kwargs):
+def make_asgidav_app(with_auth, with_ssl, provider=None):
     """Start blocking WsgiDAV server (called as a separate process)."""
 
     package_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -149,16 +151,7 @@ def run_asgidav_server(with_auth, with_ssl, provider=None, **kwargs):
     # We want output captured for tests
     util.init_logging(config)
 
-    # This event is .set() when server enters the request handler loop
-    if kwargs.get("startup_event"):
-        config["startup_event"] = kwargs["startup_event"]
-
-    app = AsgiDavApp(config)
-
-    from AsgiDav.server.server_cli import _run_uvicorn
-
-    _run_uvicorn(app, config)
-    # blocking...
+    return AsgiDavApp(config)
 
 
 # ========================================================================
@@ -170,8 +163,15 @@ class AsgiDavTestServer:
     """Run AsgiDav in a separate process."""
 
     def __init__(
-        self, config=None, with_auth=False, with_ssl=False, provider=None, profile=False
+        self,
+        config=None,
+        with_auth=False,
+        with_ssl=False,
+        provider=None,
+        profile=False,
+        app=None,
     ):
+        self.app = app
         self.config = config
         self.with_auth = with_auth
         self.with_ssl = with_ssl
@@ -197,34 +197,29 @@ class AsgiDavTestServer:
             pass
 
     def start(self):
-        kwargs = {
-            "with_auth": self.with_auth,
-            "with_ssl": self.with_ssl,
-            "provider": self.provider,
-            "startup_event": self.startup_event,
-            "startup_timeout": self.startup_timeout,
-        }
-
         print("Starting AsgiDavTestServer...")
 
-        self.proc = multiprocessing.Process(target=run_asgidav_server, kwargs=kwargs)
-        self.proc.daemon = True
+        def serve():
+            uvicorn.run(
+                self.app
+                if self.app
+                else make_asgidav_app(self.with_auth, self.with_ssl, self.provider),
+                host="127.0.0.1",
+                port=8080,
+            )
+
+        self.proc = multiprocessing.Process(target=serve)
         self.proc.start()
 
         print("Starting AsgiDavTestServer... waiting for request loop...")
-
-        # if not self.startup_event.wait(self.startup_timeout):
-        #     raise RuntimeError(
-        #         f"AsgiDavTestServer start() timed out after {self.startup_timeout} seconds"
-        #     )
-
         print("Starting AsgiDavTestServer... running.")
 
-        return self
+        time.sleep(1)
 
     def stop(self):
-        if self.proc:
-            print("Stopping AsgiDavAppTestServer...")
+        if self.proc and self.proc.is_alive():
+            print("Stopping AsgiDavTestServer...")
+
             self.proc.terminate()
             self.proc.join()
             self.proc = None

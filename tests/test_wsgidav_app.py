@@ -11,18 +11,17 @@ See http://webtest.readthedocs.org/en/latest/
     (successor of http://pythonpaste.org/testing-applications.html)
 """
 
-import multiprocessing
 import shutil
-import time
 import unittest
 
 import requests
-import uvicorn
+import requests.auth
 
 from AsgiDav import util
-from AsgiDav.app import AsgiDavApp
-from AsgiDav.fs_dav_provider import FilesystemProvider
-from tests.util import create_test_folder
+from tests.util import AsgiDavTestServer, create_test_folder
+
+_test_server = None
+
 
 # ========================================================================
 # ServerTest
@@ -32,48 +31,21 @@ from tests.util import create_test_folder
 class ServerTest(unittest.TestCase):
     """Test wsgidav_app using paste.fixture."""
 
-    def _makeAsgiDavApp(self, share_path):
-        provider = FilesystemProvider(share_path)
-
-        config = {
-            "provider_mapping": {"/": provider},
-            # None: dc.simple_dc.SimpleDomainController(user_mapping)
-            "http_authenticator": {"domain_controller": None},
-            "simple_dc": {"user_mapping": {"*": True}},  # anonymous access
-            "verbose": 1,
-            "logging": {"enable_loggers": []},
-            "property_manager": None,  # None: no property manager
-            "lock_storage": True,  # True: use LockManager(lock_storage.LockStorageDict)
-        }
-
-        return AsgiDavApp(config)
-
     def setUp(self):
-        self.proc = None
         self.root_path = create_test_folder("wsgidav-test")
-        app = self._makeAsgiDavApp(self.root_path)
 
-        def start_uvicorn():
-            uvicorn.run(
-                app,
-                host="127.0.0.1",
-                port=8080,
-            )
+        global _test_server
 
-        self.proc = multiprocessing.Process(target=start_uvicorn)
-        self.proc.start()
-
-        time.sleep(2)
+        _test_server = AsgiDavTestServer(with_auth=False, with_ssl=False)
+        _test_server.start()
 
     def tearDown(self):
-        if self.proc and self.proc.is_alive():
-            print("Stopping AsgiDavTestServer...")
-
-            self.proc.terminate()
-            self.proc.join()
-            self.proc = None
-
         shutil.rmtree(self.root_path, ignore_errors=True)
+
+        global _test_server
+
+        if _test_server:
+            _test_server.stop()
 
     def testPreconditions(self):
         """Environment must be set."""

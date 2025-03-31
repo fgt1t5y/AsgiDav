@@ -196,19 +196,19 @@ class AsgiDavTestServer:
         except Exception:
             pass
 
+    def serve(self):
+        uvicorn.run(
+            self.app
+            if self.app
+            else make_asgidav_app(self.with_auth, self.with_ssl, self.provider),
+            host="127.0.0.1",
+            port=8080,
+        )
+
     def start(self):
         print("Starting AsgiDavTestServer...")
 
-        def serve():
-            uvicorn.run(
-                self.app
-                if self.app
-                else make_asgidav_app(self.with_auth, self.with_ssl, self.provider),
-                host="127.0.0.1",
-                port=8080,
-            )
-
-        self.proc = multiprocessing.Process(target=serve)
+        self.proc = multiprocessing.Process(target=self.serve)
         self.proc.start()
 
         print("Starting AsgiDavTestServer... waiting for request loop...")

@@ -68,8 +68,6 @@ class ServerTest(unittest.TestCase):
         self.client = davclient.DAVClient(SERVER_ADDRESS, logger=True)
         self.client.set_basic_auth("tester", "secret")
 
-    #        self.client.headers['new_header_for_session'] = "useful_example"
-
     def tearDown(self):
         del self.client
 

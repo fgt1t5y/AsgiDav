@@ -136,7 +136,7 @@ class DAVProvider(ABC):
 
 class ASGIVersions(TypedDict):
     spec_version: str
-    version: Literal["2.0"] | Literal["3.0"]
+    version: str
 
 
 class AsgiDavAuth:
